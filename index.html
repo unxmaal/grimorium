@@ -63,6 +63,41 @@
   #parchment { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
   #background-decor { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
   #cards { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+  #groups { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+  .group {
+    position: absolute;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    background: rgba(12, 7, 3, 0.18);
+    box-shadow: 0 0 14px currentColor inset, 0 0 8px rgba(255, 207, 63, 0.08);
+    opacity: 0.85;
+    transition: opacity 0.2s;
+  }
+  .group.untagged {
+    color: var(--ink-faint);
+    box-shadow: 0 0 6px var(--ink-faint) inset;
+    border-style: dashed;
+  }
+  .group .label {
+    position: absolute;
+    top: -9px; left: 14px;
+    background: linear-gradient(to bottom, var(--bg-1), var(--bg-0));
+    padding: 0 10px;
+    font-family: var(--serif);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: currentColor;
+    display: flex; align-items: center; gap: 6px;
+    text-shadow: 0 0 8px currentColor;
+  }
+  .group .label .g { font-family: var(--glyph); font-size: 14px; }
+  .btn.active {
+    background: linear-gradient(to bottom, rgba(255,207,63,0.22), rgba(255,207,63,0.08));
+    color: var(--gold-bright);
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(255,207,63,0.3) inset;
+  }
 
   /* ---------- top bar ---------- */
   .topbar {
@@ -669,6 +704,7 @@
 
 <canvas id="parchment"></canvas>
 <svg id="background-decor" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="groups"></div>
 <div id="cards"></div>
 <div class="shelf" id="shelf"></div>
 
@@ -682,6 +718,7 @@
     <div><span class="k">Sever</span><span class="v" id="meta-down" style="color:var(--sienna)">0</span></div>
     <div><span class="k">Last</span><span class="v" id="meta-last">never</span></div>
   </div>
+  <button class="btn ghost" id="btn-group" title="Cluster chains by their first sigil">Group</button>
   <button class="btn ghost" id="btn-relayout" title="Re-arrange chains in a fresh grid">Re-Arrange</button>
   <button class="btn ghost" id="btn-config">Inscribe</button>
   <button class="btn primary" id="btn-scan">▸ Scry All</button>
@@ -758,6 +795,23 @@
       <div class="right">
         <button class="btn ghost" id="btn-json-cancel">Cancel</button>
         <button class="btn primary" id="btn-json-apply">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg-chain">
+  <div class="modal" style="width:min(820px,92vw)">
+    <div class="head">
+      <h2 id="chain-modal-title">Inscribe Chain</h2>
+      <button class="btn ghost" id="btn-close-chain">Close</button>
+    </div>
+    <div class="body"><div id="chain-modal-body"></div></div>
+    <div class="foot">
+      <button class="btn danger" id="btn-chain-delete">Banish</button>
+      <div class="right">
+        <button class="btn ghost" id="btn-chain-cancel">Cancel</button>
+        <button class="btn primary" id="btn-chain-save">Inscribe</button>
       </div>
     </div>
   </div>
@@ -880,6 +934,7 @@ function defaultConfig() {
     chains: DEFAULT_NODES.map(([n, a]) => makeDefaultChain(n, a)),
     classifiers: [],
     positions: {},
+    groupByTag: false,
     timeoutMs: 5000,
     parallel: 6
   };
@@ -941,7 +996,7 @@ function occultState(s) {
        : s === "bad"     ? "SEVERED"
        : s === "check"   ? "DIVINING"
        : s === "skipped" ? "SKIPPED"
-       :                   "DORMANT";
+       :                   "UNSCRYED";
 }
 function pillCls(state) {
   return state === "ok" ? "ok" : state === "warn" ? "warn"
@@ -980,6 +1035,7 @@ function normalize(c) {
   c.chains ||= [];
   c.classifiers ||= [];
   c.positions ||= {};
+  c.groupByTag ??= false;
   c.timeoutMs ??= 5000;
   c.parallel ??= 6;
   for (const ch of c.chains) {
@@ -1274,7 +1330,7 @@ async function rescryLink(chain, link) {
 
 function aggregateChainState(chain) {
   if (!chain.links.length) return { state: "unk", total: 0, up: 0, firstBadIdx: -1 };
-  const order = { skipped: 0, ok: 1, check: 2, unk: 3, warn: 4, bad: 5 };
+  const order = { unk: 0, ok: 1, skipped: 2, check: 3, warn: 4, bad: 5 };
   let worst = "unk", hasAny = false, up = 0, firstBadIdx = -1;
   for (let i = 0; i < chain.links.length; i++) {
     const st = statusMap.get(chain.links[i].id);
@@ -1500,14 +1556,113 @@ function render() {
   const root = $("#cards");
   root.innerHTML = "";
   cardEls.clear();
-  for (let i = 0; i < config.chains.length; i++) {
-    const chain = config.chains[i];
-    const pos = getCardPosition(chain, i);
-    const card = buildCard(chain, pos);
+  for (const chain of config.chains) {
+    const card = buildCard(chain, { x: 0, y: 0 });
     root.appendChild(card);
     cardEls.set(chain.id, card);
   }
+  applyLayout();
   applyFilter();
+}
+
+function applyLayout() {
+  if (config.groupByTag) layoutGrouped();
+  else layoutFlat();
+}
+
+function layoutFlat() {
+  $("#groups").innerHTML = "";
+  for (let i = 0; i < config.chains.length; i++) {
+    const chain = config.chains[i];
+    const card = cardEls.get(chain.id);
+    if (!card) continue;
+    const pos = getCardPosition(chain, i);
+    card.style.left = pos.x + "px";
+    card.style.top  = pos.y + "px";
+  }
+}
+
+function layoutGrouped() {
+  const groupsRoot = $("#groups");
+  groupsRoot.innerHTML = "";
+
+  const sidePanelOpen = $("#sidepanel").classList.contains("open");
+  const effRight = sidePanelOpen ? SIDEPANEL_W : PAD_RIGHT;
+  const availW = Math.max(CARD_W + 40, window.innerWidth - PAD_LEFT - effRight);
+
+  // Each chain lives in the group of its FIRST classifier. Multi-tag chains
+  // still show all sigils as runes on the card; they just have one spatial home.
+  const seen = new Set();
+  const groups = [];
+  for (const cls of config.classifiers) {
+    const members = config.chains.filter(c =>
+      c.classifierIds.length > 0 && c.classifierIds[0] === cls.id);
+    if (members.length) {
+      groups.push({ classifier: cls, chains: members });
+      for (const m of members) seen.add(m.id);
+    }
+  }
+  const orphans = config.chains.filter(c => !seen.has(c.id));
+  if (orphans.length) groups.push({ classifier: null, chains: orphans });
+
+  const innerPadX = 16;
+  const innerPadY = 18;
+  const headerH = 14;
+
+  let y = PAD_TOP + 6;
+  for (const g of groups) {
+    const usableW = availW - innerPadX * 2;
+    const cols = Math.max(1, Math.floor((usableW + GAP) / (CARD_W + GAP)));
+    const rows = Math.ceil(g.chains.length / cols);
+
+    // Measure live card heights — a bad link adds an inline detail row that
+    // grows the card beyond CARD_H_MIN. Use per-row max so the group sizes
+    // to its tallest member instead of clipping.
+    const rowHeights = new Array(rows).fill(CARD_H_MIN);
+    for (let i = 0; i < g.chains.length; i++) {
+      const r = Math.floor(i / cols);
+      const chain = g.chains[i];
+      const card = cardEls.get(chain.id);
+      if (!card) continue;
+      const h = card.offsetHeight || CARD_H_MIN;
+      if (h > rowHeights[r]) rowHeights[r] = h;
+    }
+    const rowYOffsets = [0];
+    for (let r = 0; r < rows; r++) {
+      rowYOffsets.push(rowYOffsets[r] + rowHeights[r] + GAP);
+    }
+    const innerH = rows > 0 ? rowYOffsets[rows] - GAP : 0;
+    const groupH = headerH + innerPadY * 2 + innerH;
+    const groupX = PAD_LEFT;
+
+    const cls = g.classifier;
+    const groupDiv = el("div", {
+      class: "group" + (cls ? "" : " untagged"),
+      style: {
+        left: groupX + "px", top: y + "px",
+        width: availW + "px", height: groupH + "px",
+        color: cls ? cls.tint : "var(--ink-faint)"
+      }
+    },
+      el("div", { class: "label" },
+        cls ? el("span", { class: "g" }, cls.glyph) : null,
+        cls ? cls.name : "untagged"
+      )
+    );
+    groupsRoot.appendChild(groupDiv);
+
+    for (let i = 0; i < g.chains.length; i++) {
+      const r = Math.floor(i / cols);
+      const c = i % cols;
+      const chain = g.chains[i];
+      const card = cardEls.get(chain.id);
+      if (!card) continue;
+      card.style.left = (groupX + innerPadX + c * (CARD_W + GAP)) + "px";
+      card.style.top  = (y + headerH + innerPadY + rowYOffsets[r]) + "px";
+    }
+
+    y += groupH + GAP;
+  }
 }
 
 function buildCard(chain, pos) {
@@ -1558,6 +1713,7 @@ function refreshCard(card, chain) {
       chain.classifierIds = chain.classifierIds.filter(x => x !== cid);
       saveConfig();
       refreshCard(card, chain);
+      if (config.groupByTag) applyLayout();
       if (activeFilter) applyFilter();
     });
     runes.appendChild(r);
@@ -1611,7 +1767,9 @@ function updateChainVisual(chainId) {
   if (!card) return;
   const chain = config.chains.find(c => c.id === chainId);
   if (!chain) return;
+  const oldH = config.groupByTag ? card.offsetHeight : 0;
   refreshCard(card, chain);
+  if (config.groupByTag && card.offsetHeight !== oldH) applyLayout();
 }
 
 /* ---------- drag and drop ---------- */
@@ -1705,7 +1863,7 @@ window.addEventListener("mouseup", (e) => {
     }
     ds.card.classList.remove("dragging");
 
-    // Dropped on a sigil? Apply classifier and snap card back.
+    // Dropped on a sigil? Apply classifier.
     if (ds.hoverSigil) {
       const cid = ds.hoverSigil.getAttribute("data-classifier-id");
       const chain = config.chains.find(c => c.id === ds.chainId);
@@ -1714,11 +1872,21 @@ window.addEventListener("mouseup", (e) => {
         const cls = config.classifiers.find(x => x.id === cid);
         log(chain.name + " bound to sigil " + (cls ? cls.name : cid), "info");
       }
-      ds.card.style.left = ds.origX + "px";
-      ds.card.style.top  = ds.origY + "px";
       saveConfig();
       refreshCard(ds.card, chain);
+      if (config.groupByTag) {
+        applyLayout();
+      } else {
+        ds.card.style.left = ds.origX + "px";
+        ds.card.style.top  = ds.origY + "px";
+      }
       if (activeFilter) applyFilter();
+      return;
+    }
+
+    // In group mode, free-positioning is disabled — snap back.
+    if (config.groupByTag) {
+      applyLayout();
       return;
     }
 
@@ -1751,6 +1919,7 @@ window.addEventListener("mouseup", (e) => {
         log(chain.name + " bound to sigil " + sd.classifier.name, "info");
         saveConfig();
         refreshCard(sd.hoverCard, chain);
+        if (config.groupByTag) applyLayout();
         if (activeFilter) applyFilter();
       }
     }
@@ -1809,6 +1978,11 @@ function applyFilter() {
 /* ---------- relayout ---------- */
 
 function relayoutGrid() {
+  if (config.groupByTag) {
+    applyLayout();
+    log("groups re-flowed", "info");
+    return;
+  }
   config.positions = {};
   for (let i = 0; i < config.chains.length; i++) {
     const chain = config.chains[i];
@@ -1856,8 +2030,15 @@ function hideTip() { tip.style.display = "none"; }
 function selectChain(chainId, linkId = null) {
   selectedChainId = chainId;
   selectedLinkId = linkId;
+  const wasOpen = $("#sidepanel").classList.contains("open");
   $("#sidepanel").classList.add("open");
   renderSidepanel(linkId);
+  if (!wasOpen && config.groupByTag) applyLayout();
+}
+
+function closeSidepanel() {
+  $("#sidepanel").classList.remove("open");
+  if (config.groupByTag) applyLayout();
 }
 
 function renderSidepanel(highlightLink = null) {
@@ -1868,10 +2049,12 @@ function renderSidepanel(highlightLink = null) {
   const agg = aggregateChainState(chain);
 
   const head = el("div", { class: "section" },
-    el("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" } },
-      el("h3", { style: { margin: 0 } }, chain.name),
+    el("div", { style: { display: "flex", alignItems: "center", marginBottom: "8px", gap: "6px" } },
+      el("h3", { style: { margin: 0, flex: "1" } }, chain.name),
       el("button", { class: "btn ghost", style: { padding: "2px 8px", fontSize: "9px" },
-        onClick: () => $("#sidepanel").classList.remove("open") }, "Close")
+        onClick: () => openChainModal(chain.id) }, "Edit"),
+      el("button", { class: "btn ghost", style: { padding: "2px 8px", fontSize: "9px" },
+        onClick: closeSidepanel }, "Close")
     ),
     el("div", { class: "row" }, el("span", { class: "k" }, "Addr"),  el("span", { class: "v" }, chain.address || "—")),
     el("div", { class: "row" }, el("span", { class: "k" }, "State"),
@@ -1932,6 +2115,62 @@ function renderSidepanel(highlightLink = null) {
 /* ---------- chain editor modal ---------- */
 
 let draft = null;
+let chainDraft = null;
+
+function openChainModal(chainId) {
+  const chain = config.chains.find(c => c.id === chainId);
+  if (!chain) return;
+  chainDraft = structuredClone(chain);
+  $("#chain-modal-title").textContent = "Inscribe " + (chain.name || "Chain");
+  renderChainModal();
+  $("#modal-bg-chain").classList.add("open");
+}
+
+function renderChainModal() {
+  const root = $("#chain-modal-body");
+  root.innerHTML = "";
+  root.append(chainEditorBlock(chainDraft, config.classifiers, null, renderChainModal));
+}
+
+function closeChainModal() { $("#modal-bg-chain").classList.remove("open"); }
+
+function saveChainModal() {
+  if (!chainDraft) return;
+  const idx = config.chains.findIndex(c => c.id === chainDraft.id);
+  if (idx < 0) return;
+  config.chains[idx] = chainDraft;
+  const validIds = new Set();
+  for (const c of config.chains) for (const l of c.links) validIds.add(l.id);
+  for (const k of [...statusMap.keys()]) if (!validIds.has(k)) statusMap.delete(k);
+  saveConfig();
+  closeChainModal();
+  render();
+  updateMeta();
+  renderSidepanel();
+  log("chain inscribed // " + chainDraft.name, "info");
+}
+
+function deleteChainModal() {
+  if (!chainDraft) return;
+  if (!confirm("Banish chain '" + chainDraft.name + "'? This cannot be undone.")) return;
+  const id = chainDraft.id;
+  const name = chainDraft.name;
+  config.chains = config.chains.filter(c => c.id !== id);
+  if (config.positions) delete config.positions[id];
+  const validIds = new Set();
+  for (const c of config.chains) for (const l of c.links) validIds.add(l.id);
+  for (const k of [...statusMap.keys()]) if (!validIds.has(k)) statusMap.delete(k);
+  if (selectedChainId === id) {
+    selectedChainId = null;
+    selectedLinkId = null;
+    $("#sidepanel").classList.remove("open");
+  }
+  saveConfig();
+  closeChainModal();
+  render();
+  updateMeta();
+  log("chain banished // " + name, "info");
+}
 
 function openConfigModal() {
   $("#cfg-timeout").value  = config.timeoutMs || 5000;
@@ -1945,13 +2184,24 @@ function closeConfigModal() { $("#modal-bg").classList.remove("open"); }
 function renderChainsEditor() {
   const root = $("#chains-editor");
   root.innerHTML = "";
-  for (const c of draft.chains) root.append(chainEditorBlock(c));
+  for (const c of draft.chains) {
+    root.append(chainEditorBlock(
+      c,
+      draft.classifiers,
+      () => {
+        draft.chains = draft.chains.filter(x => x.id !== c.id);
+        if (draft.positions) delete draft.positions[c.id];
+        renderChainsEditor();
+      },
+      renderChainsEditor
+    ));
+  }
 }
 
-function chainEditorBlock(chain) {
+function chainEditorBlock(chain, classifiers, onDelete, onRefresh) {
   const block = el("div", { class: "chain-block" });
 
-  const head = el("div", { class: "head-row" },
+  const headKids = [
     el("div", {},
       el("label", {}, "Chain Name"),
       el("input", { type: "text", value: chain.name || "",
@@ -1974,23 +2224,20 @@ function chainEditorBlock(chain) {
         }
         return sel;
       })()
-    ),
-    el("button", {
+    )
+  ];
+  if (onDelete) {
+    headKids.push(el("button", {
       class: "btn danger",
       style: { padding: "4px 10px", fontSize: "10px" },
-      onClick: () => {
-        draft.chains = draft.chains.filter(c => c.id !== chain.id);
-        if (draft.positions) delete draft.positions[chain.id];
-        renderChainsEditor();
-      }
-    }, "✕ Chain")
-  );
-  block.append(head);
+      onClick: onDelete
+    }, "✕ Chain"));
+  }
+  block.append(el("div", { class: "head-row" }, ...headKids));
 
-  // Classifier picker
-  if (draft.classifiers.length) {
+  if (classifiers.length) {
     const picker = el("div", { class: "classifier-picker" });
-    for (const cls of draft.classifiers) {
+    for (const cls of classifiers) {
       const on = chain.classifierIds.includes(cls.id);
       const chip = el("span", {
         class: "classifier-chip" + (on ? " on" : ""),
@@ -2002,7 +2249,7 @@ function chainEditorBlock(chain) {
         } else {
           chain.classifierIds.push(cls.id);
         }
-        renderChainsEditor();
+        onRefresh();
       });
       picker.append(chip);
     }
@@ -2248,6 +2495,7 @@ function deleteClassifier() {
   closeClassifierModal();
   renderShelf();
   for (const ch of config.chains) updateChainVisual(ch.id);
+  if (config.groupByTag) applyLayout();
   log("sigil banished // " + cls.name, "info");
 }
 
@@ -2284,7 +2532,11 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 
-window.addEventListener("resize", () => { sizeCanvas(); buildDecor(); });
+window.addEventListener("resize", () => {
+  sizeCanvas();
+  buildDecor();
+  if (config.groupByTag) applyLayout();
+});
 sizeCanvas();
 buildDecor();
 requestAnimationFrame(loop);
@@ -2294,6 +2546,13 @@ requestAnimationFrame(loop);
 $("#btn-scan").addEventListener("click", scanAll);
 $("#btn-config").addEventListener("click", openConfigModal);
 $("#btn-relayout").addEventListener("click", relayoutGrid);
+$("#btn-group").addEventListener("click", () => {
+  config.groupByTag = !config.groupByTag;
+  saveConfig();
+  $("#btn-group").classList.toggle("active", config.groupByTag);
+  applyLayout();
+  log(config.groupByTag ? "grouping by sigil" : "free arrangement", "dim");
+});
 $("#btn-close-modal").addEventListener("click", closeConfigModal);
 $("#btn-cancel").addEventListener("click", closeConfigModal);
 $("#btn-save").addEventListener("click", saveAndApplyConfig);
@@ -2339,16 +2598,23 @@ $("#btn-cls-cancel").addEventListener("click", closeClassifierModal);
 $("#btn-cls-save").addEventListener("click", saveClassifier);
 $("#btn-cls-delete").addEventListener("click", deleteClassifier);
 
+$("#btn-close-chain").addEventListener("click", closeChainModal);
+$("#btn-chain-cancel").addEventListener("click", closeChainModal);
+$("#btn-chain-save").addEventListener("click", saveChainModal);
+$("#btn-chain-delete").addEventListener("click", deleteChainModal);
+
 $("#modal-bg").addEventListener("click", (e) => { if (e.target.id === "modal-bg") closeConfigModal(); });
 $("#modal-bg-json").addEventListener("click", (e) => { if (e.target.id === "modal-bg-json") closeJsonModal(); });
 $("#modal-bg-classifier").addEventListener("click", (e) => { if (e.target.id === "modal-bg-classifier") closeClassifierModal(); });
+$("#modal-bg-chain").addEventListener("click", (e) => { if (e.target.id === "modal-bg-chain") closeChainModal(); });
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if ($("#modal-bg-classifier").classList.contains("open")) closeClassifierModal();
+    else if ($("#modal-bg-chain").classList.contains("open")) closeChainModal();
     else if ($("#modal-bg-json").classList.contains("open")) closeJsonModal();
     else if ($("#modal-bg").classList.contains("open")) closeConfigModal();
-    else if ($("#sidepanel").classList.contains("open")) $("#sidepanel").classList.remove("open");
+    else if ($("#sidepanel").classList.contains("open")) closeSidepanel();
     else if (activeFilter) toggleFilter(activeFilter);
   }
   if (e.key === " " && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) {
@@ -2363,6 +2629,8 @@ log("GRIMORIUM awakens // " + new Date().toISOString().slice(0, 10), "info");
 log("press SCRY ALL (or spacebar) to divine the chains' fates", "dim");
 log("drag chains by their top bar to arrange — drop on a sigil to bind", "dim");
 log("drag a sigil onto a chain to bind, click a sigil to filter", "dim");
+log("toggle GROUP to cluster chains by their first sigil", "dim");
+$("#btn-group").classList.toggle("active", config.groupByTag);
 render();
 renderShelf();
 updateMeta();
