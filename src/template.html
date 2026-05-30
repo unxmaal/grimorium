@@ -17,7 +17,7 @@
 <div class="shelf" id="shelf"></div>
 
 <div class="topbar">
-  <div class="brand">Grimorium<span class="sub">// internal divination</span></div>
+  <div class="brand"><span data-label="brand.name">Grimorium</span><span class="sub" data-label="brand.sub">// internal divination</span></div>
   <div class="spacer"></div>
   <div class="meta">
     <div><span class="k">Chains</span><span class="v" id="meta-chains">0</span></div>
@@ -26,17 +26,17 @@
     <div><span class="k">Sever</span><span class="v" id="meta-down" style="color:var(--sienna)">0</span></div>
     <div><span class="k">Last</span><span class="v" id="meta-last">never</span></div>
   </div>
-  <button class="btn ghost" id="btn-group" title="Cluster chains by their first sigil">Group</button>
-  <button class="btn ghost" id="btn-relayout" title="Re-arrange chains in a fresh grid">Re-Arrange</button>
-  <button class="btn ghost" id="btn-config">Inscribe</button>
-  <button class="btn primary" id="btn-scan">▸ Scry All</button>
+  <button class="btn ghost" id="btn-group" data-label="actions.group">Group</button>
+  <button class="btn ghost" id="btn-relayout" data-label="actions.reArrange">Re-Arrange</button>
+  <button class="btn ghost" id="btn-config" data-label="actions.inscribe">Inscribe</button>
+  <button class="btn primary" id="btn-scan" data-label="actions.scryAll">▸ Scry All</button>
 </div>
 
 <div class="empty-hint" id="empty-hint">
-  <h1>GRIMORIUM</h1>
+  <h1 data-label="brand.name">GRIMORIUM</h1>
   <div class="glyph-row">☉ ☽ ☿ ♀ ♂ ♃ ♄</div>
-  <div>no chains inscribed.</div>
-  <div style="margin-top:8px">press <b style="color:var(--gold)">INSCRIBE</b> to begin the rite.</div>
+  <div data-label="empty.noChainsHead">no chains inscribed.</div>
+  <div style="margin-top:8px;color:var(--gold)" data-label="empty.pressHint">press INSCRIBE to begin.</div>
 </div>
 
 <aside class="sidepanel" id="sidepanel">
@@ -45,8 +45,8 @@
 
 <div class="console">
   <div class="header">
-    <div><span class="candle"></span>Oracle Log</div>
-    <div><button class="btn ghost" id="btn-clear-log" style="padding:2px 8px;font-size:9px;">Purge</button></div>
+    <div><span class="candle"></span><span data-label="nouns.log">Oracle Log</span></div>
+    <div><button class="btn ghost" id="btn-clear-log" style="padding:2px 8px;font-size:9px;" data-label="actions.purge">Purge</button></div>
   </div>
   <div class="body" id="log"></div>
 </div>
@@ -54,38 +54,39 @@
 <div class="modal-bg" id="modal-bg">
   <div class="modal">
     <div class="head">
-      <h2>Inscribe the Grimoire</h2>
-      <button class="btn ghost" id="btn-close-modal">Close</button>
+      <h2 data-label="modalTitles.inscribe">Inscribe the Grimoire</h2>
+      <button class="btn ghost" id="btn-close-modal" data-label="actions.close">Close</button>
     </div>
     <div class="body" id="modal-body">
       <div style="display:flex;justify-content:space-between;margin-bottom:14px;gap:10px;align-items:center;">
-        <div style="color:var(--ink-dim);font-size:11px;font-family:var(--serif);line-height:1.5;">
-          A <i>chain</i> is a path through indirection — DNS → ALB → Caddy → origin.
-          When a link fails, downstream links are skipped, and the row tells you which link broke.
+        <div style="color:var(--ink-dim);font-size:11px;font-family:var(--serif);line-height:1.5;" data-label="explainers.chainDescription">
+          A chain is a path through indirection — DNS → ALB → Caddy → origin. When a link fails, downstream links are skipped, and the row tells you which link broke.
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn ghost" id="btn-export">Export</button>
-          <button class="btn ghost" id="btn-import">Import</button>
+          <button class="btn ghost" id="btn-export" data-label="actions.exportLabel">Export</button>
+          <button class="btn ghost" id="btn-import" data-label="actions.importLabel">Import</button>
         </div>
       </div>
       <div id="chains-editor"></div>
-      <button class="btn" id="btn-add-chain">+ Add Chain</button>
+      <button class="btn" id="btn-add-chain" data-label="actions.addChain">+ Add Chain</button>
 
       <div style="margin-top:20px;padding-top:14px;border-top:1px dashed var(--ink-faint)">
-        <label>Rite Settings</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label data-label="nouns.siteSettings">Rite Settings</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
           <div><label>Probe Timeout (ms)</label>
             <input type="number" id="cfg-timeout" min="500" max="30000" step="100" value="5000"></div>
           <div><label>Parallel Chains</label>
             <input type="number" id="cfg-parallel" min="1" max="32" step="1" value="6"></div>
+          <div><label>Theme</label>
+            <select id="cfg-theme"></select></div>
         </div>
       </div>
     </div>
     <div class="foot">
-      <button class="btn danger" id="btn-reset">Reset to Defaults</button>
+      <button class="btn danger" id="btn-reset" data-label="actions.reset">Reset to Defaults</button>
       <div class="right">
-        <button class="btn ghost" id="btn-cancel">Cancel</button>
-        <button class="btn primary" id="btn-save">Inscribe &amp; Apply</button>
+        <button class="btn ghost" id="btn-cancel" data-label="actions.cancel">Cancel</button>
+        <button class="btn primary" id="btn-save" data-label="actions.saveApply">Inscribe &amp; Apply</button>
       </div>
     </div>
   </div>
@@ -95,14 +96,14 @@
   <div class="modal" style="width:min(720px,92vw)">
     <div class="head">
       <h2 id="json-title">Transcribe</h2>
-      <button class="btn ghost" id="btn-close-json">Close</button>
+      <button class="btn ghost" id="btn-close-json" data-label="actions.close">Close</button>
     </div>
     <div class="body"><textarea id="json-area" spellcheck="false"></textarea></div>
     <div class="foot">
       <div></div>
       <div class="right">
-        <button class="btn ghost" id="btn-json-cancel">Cancel</button>
-        <button class="btn primary" id="btn-json-apply">Apply</button>
+        <button class="btn ghost" id="btn-json-cancel" data-label="actions.cancel">Cancel</button>
+        <button class="btn primary" id="btn-json-apply" data-label="actions.apply">Apply</button>
       </div>
     </div>
   </div>
@@ -112,14 +113,14 @@
   <div class="modal" style="width:min(820px,92vw)">
     <div class="head">
       <h2 id="chain-modal-title">Inscribe Chain</h2>
-      <button class="btn ghost" id="btn-close-chain">Close</button>
+      <button class="btn ghost" id="btn-close-chain" data-label="actions.close">Close</button>
     </div>
     <div class="body"><div id="chain-modal-body"></div></div>
     <div class="foot">
-      <button class="btn danger" id="btn-chain-delete">Banish</button>
+      <button class="btn danger" id="btn-chain-delete" data-label="actions.banish">Banish</button>
       <div class="right">
-        <button class="btn ghost" id="btn-chain-cancel">Cancel</button>
-        <button class="btn primary" id="btn-chain-save">Inscribe</button>
+        <button class="btn ghost" id="btn-chain-cancel" data-label="actions.cancel">Cancel</button>
+        <button class="btn primary" id="btn-chain-save" data-label="actions.save">Inscribe</button>
       </div>
     </div>
   </div>
@@ -129,7 +130,7 @@
   <div class="modal" style="width:min(420px,92vw)">
     <div class="head">
       <h2 id="cls-title">Sigil</h2>
-      <button class="btn ghost" id="btn-close-cls">Close</button>
+      <button class="btn ghost" id="btn-close-cls" data-label="actions.close">Close</button>
     </div>
     <div class="body">
       <label>Name</label>
@@ -142,10 +143,10 @@
       </div>
     </div>
     <div class="foot">
-      <button class="btn danger" id="btn-cls-delete" style="display:none">Banish</button>
+      <button class="btn danger" id="btn-cls-delete" style="display:none" data-label="actions.banish">Banish</button>
       <div class="right">
-        <button class="btn ghost" id="btn-cls-cancel">Cancel</button>
-        <button class="btn primary" id="btn-cls-save">Bind</button>
+        <button class="btn ghost" id="btn-cls-cancel" data-label="actions.cancel">Cancel</button>
+        <button class="btn primary" id="btn-cls-save" data-label="actions.bind">Bind</button>
       </div>
     </div>
   </div>

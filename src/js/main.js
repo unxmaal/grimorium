@@ -29,7 +29,7 @@ import {
 } from "./layout.js";
 import { el, svg, buildCard, refreshCard } from "./render.js";
 import { DRAG_THRESHOLD, dropTargetAt } from "./drag.js";
-import { activeTheme, stateLabel } from "./theme.js";
+import { activeTheme, stateLabel, themeById, applyTheme, applyLabels, t, THEMES } from "./theme.js";
 
 /* ---------------------------------------------------------------------------
  * GRIMORIUM — chain-aware diagnostic dashboard.
@@ -41,6 +41,17 @@ import { activeTheme, stateLabel } from "./theme.js";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 let config = loadConfig();
+
+// Theme: URL param (?theme=cassette) wins, then config.themeId, then default.
+{
+  const params = new URLSearchParams(globalThis.location?.search || "");
+  const urlTheme = params.get("theme");
+  const pickedId = urlTheme || config.themeId || "grimorium";
+  applyTheme(themeById(pickedId));
+  applyLabels();
+  if (urlTheme) config.themeId = urlTheme;
+}
+
 let statusMap = new Map();        // linkId -> { state, latency, detail, ts }
 let chainState = new Map();       // chainId -> aggregate state cache
 let selectedChainId = null;
@@ -75,10 +86,10 @@ function log(msg, tag = "info") {
 /* ---------- chain runner (thin wrappers binding side-effects to pure runner module) ---------- */
 
 async function scanAll() {
-  if (scanInFlight) { log("a rite is already underway", "warn"); return; }
+  if (scanInFlight) { log(t("log.scanInFlight"), "warn"); return; }
   scanInFlight = true;
   $("#btn-scan").disabled = true;
-  $("#btn-scan").textContent = "▸ divining…";
+  $("#btn-scan").textContent = t("actions.scryAllRunning");
 
   const result = await scanAllPure(config.chains, statusMap, {
     timeoutMs: config.timeoutMs,
@@ -95,7 +106,7 @@ async function scanAll() {
   if (result.scanned > 0) $("#meta-last").textContent = fmtTime();
   scanInFlight = false;
   $("#btn-scan").disabled = false;
-  $("#btn-scan").textContent = "▸ Scry All";
+  $("#btn-scan").textContent = t("actions.scryAll");
 }
 
 async function rescryLink(chain, link) {
@@ -227,6 +238,11 @@ const renderCtx = {
   get statusMap() { return statusMap; },
   get classifiers() { return config.classifiers; },
   stateLabel: stateLabel,
+  get labels() {
+    return {
+      noLinksOnCard: t("empty.noLinksOnCard")
+    };
+  },
   handlers: {
     selectChain: (chainId, linkId) => selectChain(chainId, linkId),
     startCardDrag: (e, card, chainId) => startCardDrag(e, card, chainId),
@@ -351,7 +367,7 @@ window.addEventListener("mouseup", (e) => {
       if (chain && cid && !chain.classifierIds.includes(cid)) {
         chain.classifierIds.push(cid);
         const cls = config.classifiers.find(x => x.id === cid);
-        log(chain.name + " bound to sigil " + (cls ? cls.name : cid), "info");
+        log(t("log.chainBound", chain.name, cls ? cls.name : cid), "info");
       }
       saveConfig(config);
       refreshCard(ds.card, chain, renderCtx);
@@ -397,7 +413,7 @@ window.addEventListener("mouseup", (e) => {
       const chain = config.chains.find(c => c.id === chainId);
       if (chain && !chain.classifierIds.includes(sd.classifier.id)) {
         chain.classifierIds.push(sd.classifier.id);
-        log(chain.name + " bound to sigil " + sd.classifier.name, "info");
+        log(t("log.chainBound", chain.name, sd.classifier.name), "info");
         saveConfig(config);
         refreshCard(sd.hoverCard, chain, renderCtx);
         if (config.groupByTag) applyLayout();
@@ -438,9 +454,9 @@ function toggleFilter(classifierId) {
   applyFilter();
   if (activeFilter) {
     const cls = config.classifiers.find(x => x.id === activeFilter);
-    log("filter // " + (cls ? cls.name : "?"), "dim");
+    log(t("log.filterActive", cls ? cls.name : "?"), "dim");
   } else {
-    log("filter cleared", "dim");
+    log(t("log.filterCleared"), "dim");
   }
 }
 
@@ -461,7 +477,7 @@ function applyFilter() {
 function relayoutGrid() {
   if (config.groupByTag) {
     applyLayout();
-    log("groups re-flowed", "info");
+    log(t("log.reflowed"), "info");
     return;
   }
   config.positions = {};
@@ -474,7 +490,7 @@ function relayoutGrid() {
     card.style.top  = pos.y + "px";
   }
   saveConfig(config);
-  log("chains re-arranged in fresh grid", "info");
+  log(t("log.arranged"), "info");
 }
 
 /* ---------- tooltip ---------- */
@@ -533,9 +549,9 @@ function renderSidepanel(highlightLink = null) {
     el("div", { style: { display: "flex", alignItems: "center", marginBottom: "8px", gap: "6px" } },
       el("h3", { style: { margin: 0, flex: "1" } }, chain.name),
       el("button", { class: "btn ghost", style: { padding: "2px 8px", fontSize: "9px" },
-        onClick: () => openChainModal(chain.id) }, "Edit"),
+        onClick: () => openChainModal(chain.id) }, t("actions.edit")),
       el("button", { class: "btn ghost", style: { padding: "2px 8px", fontSize: "9px" },
-        onClick: closeSidepanel }, "Close")
+        onClick: closeSidepanel }, t("actions.close"))
     ),
     el("div", { class: "row" }, el("span", { class: "k" }, "Addr"),  el("span", { class: "v" }, chain.address || "—")),
     el("div", { class: "row" }, el("span", { class: "k" }, "State"),
@@ -546,7 +562,7 @@ function renderSidepanel(highlightLink = null) {
   panel.append(head);
 
   if (chain.classifierIds.length) {
-    const tagSec = el("div", { class: "section" }, el("h3", {}, "Sigils"));
+    const tagSec = el("div", { class: "section" }, el("h3", {}, t("nouns.sigils")));
     const wrap = el("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px" } });
     for (const cid of chain.classifierIds) {
       const cls = config.classifiers.find(x => x.id === cid);
@@ -560,10 +576,10 @@ function renderSidepanel(highlightLink = null) {
     panel.append(tagSec);
   }
 
-  const linksSec = el("div", { class: "section" }, el("h3", {}, "Links"));
+  const linksSec = el("div", { class: "section" }, el("h3", {}, t("nouns.links").replace(/^./, c => c.toUpperCase())));
   if (!chain.links.length) {
     linksSec.append(el("div", { style: { color: "var(--ink-dim)", fontStyle: "italic", padding: "8px 0" } },
-      "No links inscribed. Use INSCRIBE to add some."));
+      t("empty.noLinksInPanel")));
   }
   for (let i = 0; i < chain.links.length; i++) {
     const link = chain.links[i];
@@ -585,7 +601,7 @@ function renderSidepanel(highlightLink = null) {
           class: "btn ghost",
           style: { padding: "3px 8px", fontSize: "9px" },
           onClick: () => rescryLink(chain, link)
-        }, "▸ Scry")
+        }, t("actions.rescry"))
       )
     );
     linksSec.append(wrap);
@@ -602,7 +618,7 @@ function openChainModal(chainId) {
   const chain = config.chains.find(c => c.id === chainId);
   if (!chain) return;
   chainDraft = structuredClone(chain);
-  $("#chain-modal-title").textContent = "Inscribe " + (chain.name || "Chain");
+  $("#chain-modal-title").textContent = t("modalTitles.inscribeChain") + " — " + (chain.name || t("nouns.chain"));
   renderChainModal();
   $("#modal-bg-chain").classList.add("open");
 }
@@ -628,7 +644,7 @@ function saveChainModal() {
   render();
   updateMeta();
   renderSidepanel();
-  log("chain inscribed // " + chainDraft.name, "info");
+  log(t("log.chainInscribed", chainDraft.name), "info");
 }
 
 function deleteChainModal() {
@@ -650,12 +666,21 @@ function deleteChainModal() {
   closeChainModal();
   render();
   updateMeta();
-  log("chain banished // " + name, "info");
+  log(t("log.chainBanished", name), "info");
 }
 
 function openConfigModal() {
   $("#cfg-timeout").value  = config.timeoutMs || 5000;
   $("#cfg-parallel").value = config.parallel  || 6;
+  const themeSel = $("#cfg-theme");
+  themeSel.innerHTML = "";
+  for (const t of Object.values(THEMES)) {
+    const o = document.createElement("option");
+    o.value = t.id;
+    o.textContent = t.name;
+    if (t.id === (config.themeId || "grimorium")) o.selected = true;
+    themeSel.append(o);
+  }
   draft = structuredClone(config);
   renderChainsEditor();
   $("#modal-bg").classList.add("open");
@@ -684,22 +709,22 @@ function chainEditorBlock(chain, classifiers, onDelete, onRefresh) {
 
   const headKids = [
     el("div", {},
-      el("label", {}, "Chain Name"),
+      el("label", {}, t("nouns.chainNameLabel")),
       el("input", { type: "text", value: chain.name || "",
         onInput: (e) => chain.name = e.target.value })
     ),
     el("div", {},
-      el("label", {}, "Address (display)"),
+      el("label", {}, t("nouns.addressLabel")),
       el("input", { type: "text", value: chain.address || "",
         placeholder: "192.168.1.10 or REDACTED.example.com",
         onInput: (e) => chain.address = e.target.value })
     ),
     el("div", {},
-      el("label", {}, "Halt"),
+      el("label", {}, t("nouns.haltLabel")),
       (() => {
         const sel = el("select", { onChange: (e) => chain.haltOnFail = e.target.value === "yes" });
-        for (const [v, t] of [["yes", "on first fail"], ["no", "probe all"]]) {
-          const o = el("option", { value: v }, t);
+        for (const [v, label] of [["yes", "on first fail"], ["no", "probe all"]]) {
+          const o = el("option", { value: v }, label);
           if ((v === "yes") === (chain.haltOnFail !== false)) o.selected = true;
           sel.append(o);
         }
@@ -712,7 +737,7 @@ function chainEditorBlock(chain, classifiers, onDelete, onRefresh) {
       class: "btn danger",
       style: { padding: "4px 10px", fontSize: "10px" },
       onClick: onDelete
-    }, "✕ Chain"));
+    }, "✕ " + t("nouns.chain")));
   }
   block.append(el("div", { class: "head-row" }, ...headKids));
 
@@ -752,7 +777,7 @@ function chainEditorBlock(chain, classifiers, onDelete, onRefresh) {
         chain.links.push(nl);
         linksRoot.append(linkEditorRow(chain, nl));
       }
-    }, "+ Add Link")
+    }, t("actions.addLink"))
   );
   return block;
 }
@@ -857,11 +882,18 @@ function buildExpectEditor(link) {
 function saveAndApplyConfig() {
   draft.timeoutMs = clamp(parseInt($("#cfg-timeout").value, 10) || 5000, 500, 30000);
   draft.parallel  = clamp(parseInt($("#cfg-parallel").value, 10) || 6, 1, 32);
+  const newThemeId = $("#cfg-theme").value || "grimorium";
+  const themeChanged = newThemeId !== (config.themeId || "grimorium");
+  draft.themeId = newThemeId;
   config = draft;
   saveConfig(config);
   closeConfigModal();
+  if (themeChanged) {
+    location.reload();   // theme swap rebuilds decoration; simplest path
+    return;
+  }
   const linkCount = config.chains.reduce((n, c) => n + c.links.length, 0);
-  log("the grimoire is inscribed // " + config.chains.length + " chains, " + linkCount + " links", "info");
+  log(t("log.inscribed", config.chains.length, linkCount), "info");
   const validIds = new Set();
   for (const c of config.chains) for (const l of c.links) validIds.add(l.id);
   for (const k of [...statusMap.keys()]) if (!validIds.has(k)) statusMap.delete(k);
@@ -882,7 +914,7 @@ let pickedTint = DEFAULT_TINTS[0];
 function openClassifierModal(id) {
   editingClassifierId = id;
   const existing = id ? config.classifiers.find(c => c.id === id) : null;
-  $("#cls-title").textContent = existing ? "Edit Sigil" : "New Sigil";
+  $("#cls-title").textContent = existing ? t("modalTitles.sigilEdit") : t("modalTitles.sigilNew");
   $("#cls-name").value = existing ? existing.name : "";
   pickedGlyph = existing ? existing.glyph : "✦";
   pickedTint  = existing ? existing.tint  : DEFAULT_TINTS[0];
@@ -949,10 +981,10 @@ function saveClassifier() {
   if (editingClassifierId) {
     const cls = config.classifiers.find(c => c.id === editingClassifierId);
     if (cls) { cls.name = name; cls.glyph = pickedGlyph; cls.tint = pickedTint; }
-    log("sigil updated // " + name, "info");
+    log(t("log.sigilUpdated", name), "info");
   } else {
     config.classifiers.push({ id: cryptoRandomId(), name, glyph: pickedGlyph, tint: pickedTint });
-    log("sigil bound // " + name, "info");
+    log(t("log.sigilBound", name), "info");
   }
   saveConfig(config);
   closeClassifierModal();
@@ -977,13 +1009,13 @@ function deleteClassifier() {
   renderShelf();
   for (const ch of config.chains) updateChainVisual(ch.id);
   if (config.groupByTag) applyLayout();
-  log("sigil banished // " + cls.name, "info");
+  log(t("log.sigilBanished", cls.name), "info");
 }
 
 /* ---------- import/export ---------- */
 
 function openJsonModal(mode) {
-  $("#json-title").textContent = mode === "export" ? "Transcribe to Parchment" : "Inscribe from Parchment";
+  $("#json-title").textContent = mode === "export" ? t("modalTitles.transcribeOut") : t("modalTitles.transcribeIn");
   $("#json-area").value = mode === "export" ? JSON.stringify(config, null, 2) : "";
   $("#json-area").readOnly = mode === "export";
   $("#btn-json-apply").style.display = mode === "export" ? "none" : "inline-block";
@@ -1024,7 +1056,7 @@ $("#btn-group").addEventListener("click", () => {
   saveConfig(config);
   $("#btn-group").classList.toggle("active", config.groupByTag);
   applyLayout();
-  log(config.groupByTag ? "grouping by sigil" : "free arrangement", "dim");
+  log(t(config.groupByTag ? "log.groupingOn" : "log.groupingOff"), "dim");
 });
 $("#btn-close-modal").addEventListener("click", closeConfigModal);
 $("#btn-cancel").addEventListener("click", closeConfigModal);
@@ -1062,7 +1094,7 @@ $("#btn-json-apply").addEventListener("click", () => {
     $("#cfg-timeout").value = draft.timeoutMs;
     $("#cfg-parallel").value = draft.parallel;
     closeJsonModal();
-    log("inscription transcribed // review and apply", "info");
+    log(t("log.transcribed"), "info");
   } catch (e) { alert("Invalid JSON: " + e.message); }
 });
 
@@ -1098,11 +1130,11 @@ window.addEventListener("keydown", (e) => {
 
 /* ---------- boot ---------- */
 
-log("GRIMORIUM awakens // " + new Date().toISOString().slice(0, 10), "info");
-log("press SCRY ALL (or spacebar) to divine the chains' fates", "dim");
-log("drag chains by their top bar to arrange — drop on a sigil to bind", "dim");
-log("drag a sigil onto a chain to bind, click a sigil to filter", "dim");
-log("toggle GROUP to cluster chains by their first sigil", "dim");
+log(t("log.awakens", new Date().toISOString().slice(0, 10)), "info");
+log(t("log.scryHint"), "dim");
+log(t("log.dragHint"), "dim");
+log(t("log.sigilHint"), "dim");
+log(t("log.groupHint"), "dim");
 $("#btn-group").classList.toggle("active", config.groupByTag);
 render();
 renderShelf();

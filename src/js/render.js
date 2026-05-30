@@ -121,7 +121,7 @@ export function refreshCard(card, chain, ctx) {
 
   const linkRow = el("div", { class: "link-row" });
   if (!chain.links.length) {
-    linkRow.appendChild(el("span", { class: "card-empty" }, "no links inscribed"));
+    linkRow.appendChild(el("span", { class: "card-empty" }, ctx.labels?.noLinksOnCard ?? "no links"));
   } else {
     for (const link of chain.links) {
       const st = statusMap.get(link.id);

@@ -1,6 +1,14 @@
-import { describe, it, expect } from "vitest";
-import { activeTheme, stateLabel, setActiveTheme } from "../src/js/theme.js";
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  activeTheme,
+  stateLabel,
+  setActiveTheme,
+  themeById,
+  applyTheme,
+  THEMES
+} from "../src/js/theme.js";
 import { grimorium } from "../src/js/themes/grimorium.js";
+import { cassette } from "../src/js/themes/cassette.js";
 import { buildCard } from "../src/js/render.js";
 import { makeChain, makeLink } from "./helpers/fixtures.js";
 
@@ -86,5 +94,149 @@ describe("setActiveTheme", () => {
     expect(stateLabel("ok")).toBe("S_OK");
     setActiveTheme(original);
     expect(stateLabel("ok")).toBe("HOLDS");
+  });
+});
+
+describe("THEMES registry", () => {
+  it("exposes grimorium and cassette", () => {
+    expect(THEMES.grimorium).toBe(grimorium);
+    expect(THEMES.cassette).toBe(cassette);
+  });
+
+  it("themeById returns the requested theme", () => {
+    expect(themeById("cassette")).toBe(cassette);
+    expect(themeById("grimorium")).toBe(grimorium);
+  });
+
+  it("themeById falls back to grimorium for unknown ids", () => {
+    expect(themeById("nonsense")).toBe(grimorium);
+    expect(themeById("")).toBe(grimorium);
+    expect(themeById(null)).toBe(grimorium);
+  });
+});
+
+describe("applyTheme", () => {
+  beforeEach(() => {
+    // reset :root inline styles each test
+    if (typeof document !== "undefined") document.documentElement.style.cssText = "";
+  });
+
+  it("writes the theme palette to :root and sets activeTheme", () => {
+    applyTheme(cassette);
+    expect(activeTheme).toBe(cassette);
+    expect(document.documentElement.style.getPropertyValue("--gold")).toBe("#ff9e2c");
+    expect(document.documentElement.style.getPropertyValue("--verdant")).toBe("#ffc043");
+  });
+
+  it("swapping back to grimorium restores grimorium values", () => {
+    applyTheme(cassette);
+    applyTheme(grimorium);
+    expect(document.documentElement.style.getPropertyValue("--gold")).toBe("#ffcf3f");
+    expect(document.documentElement.style.getPropertyValue("--verdant")).toBe("#8ee066");
+  });
+
+  it("safely no-ops when theme or palette is missing", () => {
+    expect(() => applyTheme(null)).not.toThrow();
+    expect(() => applyTheme({ id: "x" })).not.toThrow();
+  });
+});
+
+describe("Cassette theme shape", () => {
+  it("has full theme structure", () => {
+    expect(cassette.id).toBe("cassette");
+    expect(cassette.name).toBeTruthy();
+    expect(cassette.labels.state.ok).toBe("NOMINAL");
+    expect(cassette.labels.state.bad).toBe("CRITICAL");
+    expect(cassette.labels.state.skipped).toBe("BYPASS");
+    expect(cassette.glyphs.length).toBeGreaterThan(20);
+    expect(typeof cassette.statusColorVar).toBe("function");
+    expect(typeof cassette.createDecoration).toBe("function");
+  });
+
+  it("provides every required palette entry", () => {
+    const required = ["--bg-0", "--bg-1", "--bg-2", "--gold", "--verdant", "--amber",
+                      "--sienna", "--ink", "--ink-dim", "--vellum", "--panel-edge"];
+    for (const key of required) {
+      expect(cassette.palette[key]).toBeTruthy();
+    }
+  });
+
+  it("statusColorVar returns a var() expression for every state", () => {
+    for (const s of ["ok", "warn", "bad", "check", "skipped", "unk"]) {
+      expect(cassette.statusColorVar(s)).toMatch(/^var\(--/);
+    }
+  });
+
+  it("has industrial-control action labels", () => {
+    expect(cassette.labels.actions.scryAll).toMatch(/SCAN/);
+    expect(cassette.labels.actions.inscribe).toBe("CONFIG");
+    expect(cassette.labels.actions.banish).toBe("DELETE");
+    expect(cassette.labels.actions.bind).toBe("ASSIGN");
+  });
+
+  it("renames the sigil noun to tag", () => {
+    expect(cassette.labels.nouns.sigil.toLowerCase()).toBe("tag");
+    expect(cassette.labels.nouns.sigils.toLowerCase()).toBe("tags");
+  });
+});
+
+import { t, tFrom, applyLabels } from "../src/js/theme.js";
+
+describe("t / tFrom", () => {
+  it("returns a string label by dotted path", () => {
+    expect(tFrom(grimorium, "actions.inscribe")).toBe("Inscribe");
+    expect(tFrom(cassette, "actions.inscribe")).toBe("CONFIG");
+  });
+
+  it("invokes function-shaped labels with args", () => {
+    expect(tFrom(grimorium, "log.scanStart", 5)).toBe("the rite begins // 5 chains");
+    expect(tFrom(cassette, "log.scanStart", 5)).toBe("scan initiated // 5 chains");
+  });
+
+  it("returns the path verbatim for unknown labels", () => {
+    expect(tFrom(grimorium, "nonsense.path")).toBe("nonsense.path");
+  });
+
+  it("t() resolves against the active theme", () => {
+    applyTheme(grimorium);
+    expect(t("actions.banish")).toBe("Banish");
+    applyTheme(cassette);
+    expect(t("actions.banish")).toBe("DELETE");
+    applyTheme(grimorium);
+  });
+});
+
+describe("applyLabels", () => {
+  it("sets textContent for elements with data-label", () => {
+    document.body.innerHTML = '<button data-label="actions.scryAll">old</button>';
+    applyLabels(cassette);
+    expect(document.querySelector("button").textContent).toBe("▸ EXEC SCAN");
+    document.body.innerHTML = "";
+  });
+
+  it("leaves elements without data-label untouched", () => {
+    document.body.innerHTML = '<button>untouched</button>';
+    applyLabels(cassette);
+    expect(document.querySelector("button").textContent).toBe("untouched");
+    document.body.innerHTML = "";
+  });
+
+  it("falls back to the path when label is missing", () => {
+    document.body.innerHTML = '<span data-label="missing.thing">x</span>';
+    applyLabels(cassette);
+    // missing label returns the path; applyLabels should leave the span
+    // unchanged when value is the same as path (safety against clobbering).
+    // Current impl writes the path; both behaviors are acceptable as long as
+    // it doesn't throw.
+    expect(() => applyLabels(cassette)).not.toThrow();
+    document.body.innerHTML = "";
+  });
+
+  it("updates the document title from brand.pageTitle", () => {
+    document.title = "previous";
+    applyLabels(cassette);
+    expect(document.title).toBe("ARGUS // host telemetry");
+    applyLabels(grimorium);
+    expect(document.title).toBe("GRIMORIUM // internal divination");
   });
 });

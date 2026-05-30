@@ -11,7 +11,8 @@ export const grimorium = {
   id: "grimorium",
   name: "Grimorium",
 
-  // Display strings keyed by semantic state name. Used by stateLabel().
+  // All themed strings. Plain strings render directly; functions take args
+  // and return strings (used for log messages with interpolation).
   labels: {
     state: {
       ok:      "HOLDS",
@@ -20,7 +21,121 @@ export const grimorium = {
       check:   "DIVINING",
       skipped: "SKIPPED",
       unk:     "UNSCRYED"
+    },
+    brand: {
+      name: "Grimorium",
+      sub:  "// internal divination",
+      pageTitle: "GRIMORIUM // internal divination"
+    },
+    actions: {
+      scryAll:         "▸ Scry All",
+      scryAllRunning:  "▸ divining…",
+      inscribe:        "Inscribe",
+      group:           "Group",
+      reArrange:       "Re-Arrange",
+      edit:            "Edit",
+      banish:          "Banish",
+      saveApply:       "Inscribe & Apply",
+      save:            "Inscribe",
+      cancel:          "Cancel",
+      close:           "Close",
+      bind:            "Bind",
+      addChain:        "+ Add Chain",
+      addLink:         "+ Add Link",
+      addSigil:        "+ Add Sigil",
+      rescry:          "▸ Scry",
+      reset:           "Reset to Defaults",
+      purge:           "Purge",
+      exportLabel:     "Export",
+      importLabel:     "Import",
+      apply:           "Apply"
+    },
+    nouns: {
+      chain:    "chain",
+      chains:   "chains",
+      link:     "link",
+      links:    "links",
+      sigil:    "Sigil",
+      sigils:   "Sigils",
+      log:      "Oracle Log",
+      addressLabel: "Address (display)",
+      chainNameLabel: "Chain Name",
+      haltLabel: "Halt",
+      siteSettings: "Rite Settings"
+    },
+    modalTitles: {
+      inscribe:      "Inscribe the Grimoire",
+      inscribeChain: "Inscribe Chain",
+      transcribeOut: "Transcribe to Parchment",
+      transcribeIn:  "Inscribe from Parchment",
+      transcribe:    "Transcribe",
+      sigilNew:      "New Sigil",
+      sigilEdit:     "Edit Sigil",
+      sigilDefault:  "Sigil"
+    },
+    empty: {
+      noChainsHead:    "no chains inscribed.",
+      pressHint:       "press INSCRIBE to begin the rite.",
+      noChainsForScry: "no chains with links — inscribe some",
+      noLinksOnCard:   "no links inscribed",
+      noLinksInPanel:  "No links inscribed. Use INSCRIBE to add some."
+    },
+    explainers: {
+      chainDescription: "A chain is a path through indirection — DNS → ALB → Caddy → origin. When a link fails, downstream links are skipped, and the row tells you which link broke.",
+      backupNote:       "Bind nodes and the rites to scry upon them."
+    },
+    log: {
+      scanInFlight:  "a rite is already underway",
+      scanStart:     (n) => "the rite begins // " + n + " chains",
+      scanEnd:       (n) => "the rite concludes // " + n + " chains scryed",
+      inscribed:     (chains, links) => "the grimoire is inscribed // " + chains + " chains, " + links + " links",
+      chainInscribed: (name) => "chain inscribed // " + name,
+      chainBanished: (name) => "chain banished // " + name,
+      chainBound:    (chain, sigil) => chain + " bound to sigil " + sigil,
+      sigilBound:    (name) => "sigil bound // " + name,
+      sigilUpdated:  (name) => "sigil updated // " + name,
+      sigilBanished: (name) => "sigil banished // " + name,
+      groupingOn:    "grouping by sigil",
+      groupingOff:   "free arrangement",
+      reflowed:      "groups re-flowed",
+      arranged:      "chains re-arranged in fresh grid",
+      filterCleared: "filter cleared",
+      filterActive:  (name) => "filter // " + name,
+      transcribed:   "inscription transcribed // review and apply",
+      awakens:       (date) => "GRIMORIUM awakens // " + date,
+      scryHint:      "press SCRY ALL (or spacebar) to divine the chains' fates",
+      dragHint:      "drag chains by their top bar to arrange — drop on a sigil to bind",
+      sigilHint:     "drag a sigil onto a chain to bind, click a sigil to filter",
+      groupHint:     "toggle GROUP to cluster chains by their first sigil"
     }
+  },
+
+  // CSS custom properties written to :root on activation.
+  // Variable names match those already used throughout the stylesheet.
+  palette: {
+    "--bg-0":          "#0c0703",
+    "--bg-1":          "#1a0e07",
+    "--bg-2":          "#261509",
+    "--vellum":        "#d8b97a",
+    "--vellum-dim":    "#8a7048",
+    "--ink":           "#ead4a3",
+    "--ink-dim":       "#9b7d4b",
+    "--ink-faint":     "#4a3a22",
+    "--gold":          "#ffcf3f",
+    "--gold-dim":      "#b8910e",
+    "--gold-bright":   "#ffe88c",
+    "--amber":         "#d18b1d",
+    "--brown":         "#6b3a14",
+    "--brown-deep":    "#3a1d08",
+    "--moss":          "#5f9a3a",
+    "--verdant":       "#8ee066",
+    "--verdant-bright":"#b9f08c",
+    "--sienna":        "#b8521c",
+    "--rust":          "#8a3214",
+    "--slate":         "#6a6055",
+    "--slate-dim":     "#3d362d",
+    "--panel":         "rgba(12, 7, 3, 0.78)",
+    "--panel-edge":    "rgba(255, 207, 63, 0.22)"
   },
 
   // CSS custom-property name to use for a given semantic state. The CSS
