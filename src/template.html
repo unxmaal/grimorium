@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GRIMORIUM // internal divination</title>
+<style>
+%STYLES%
+</style>
+</head>
+<body>
+
+<canvas id="parchment"></canvas>
+<svg id="background-decor" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="groups"></div>
+<div id="cards"></div>
+<div class="shelf" id="shelf"></div>
+
+<div class="topbar">
+  <div class="brand">Grimorium<span class="sub">// internal divination</span></div>
+  <div class="spacer"></div>
+  <div class="meta">
+    <div><span class="k">Chains</span><span class="v" id="meta-chains">0</span></div>
+    <div><span class="k">Links</span><span class="v" id="meta-links">0</span></div>
+    <div><span class="k">Hold</span><span class="v" id="meta-up" style="color:var(--verdant)">0</span></div>
+    <div><span class="k">Sever</span><span class="v" id="meta-down" style="color:var(--sienna)">0</span></div>
+    <div><span class="k">Last</span><span class="v" id="meta-last">never</span></div>
+  </div>
+  <button class="btn ghost" id="btn-group" title="Cluster chains by their first sigil">Group</button>
+  <button class="btn ghost" id="btn-relayout" title="Re-arrange chains in a fresh grid">Re-Arrange</button>
+  <button class="btn ghost" id="btn-config">Inscribe</button>
+  <button class="btn primary" id="btn-scan">▸ Scry All</button>
+</div>
+
+<div class="empty-hint" id="empty-hint">
+  <h1>GRIMORIUM</h1>
+  <div class="glyph-row">☉ ☽ ☿ ♀ ♂ ♃ ♄</div>
+  <div>no chains inscribed.</div>
+  <div style="margin-top:8px">press <b style="color:var(--gold)">INSCRIBE</b> to begin the rite.</div>
+</div>
+
+<aside class="sidepanel" id="sidepanel">
+  <div id="side-content"></div>
+</aside>
+
+<div class="console">
+  <div class="header">
+    <div><span class="candle"></span>Oracle Log</div>
+    <div><button class="btn ghost" id="btn-clear-log" style="padding:2px 8px;font-size:9px;">Purge</button></div>
+  </div>
+  <div class="body" id="log"></div>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="head">
+      <h2>Inscribe the Grimoire</h2>
+      <button class="btn ghost" id="btn-close-modal">Close</button>
+    </div>
+    <div class="body" id="modal-body">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px;gap:10px;align-items:center;">
+        <div style="color:var(--ink-dim);font-size:11px;font-family:var(--serif);line-height:1.5;">
+          A <i>chain</i> is a path through indirection — DNS → ALB → Caddy → origin.
+          When a link fails, downstream links are skipped, and the row tells you which link broke.
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn ghost" id="btn-export">Export</button>
+          <button class="btn ghost" id="btn-import">Import</button>
+        </div>
+      </div>
+      <div id="chains-editor"></div>
+      <button class="btn" id="btn-add-chain">+ Add Chain</button>
+
+      <div style="margin-top:20px;padding-top:14px;border-top:1px dashed var(--ink-faint)">
+        <label>Rite Settings</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label>Probe Timeout (ms)</label>
+            <input type="number" id="cfg-timeout" min="500" max="30000" step="100" value="5000"></div>
+          <div><label>Parallel Chains</label>
+            <input type="number" id="cfg-parallel" min="1" max="32" step="1" value="6"></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn danger" id="btn-reset">Reset to Defaults</button>
+      <div class="right">
+        <button class="btn ghost" id="btn-cancel">Cancel</button>
+        <button class="btn primary" id="btn-save">Inscribe &amp; Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg-json">
+  <div class="modal" style="width:min(720px,92vw)">
+    <div class="head">
+      <h2 id="json-title">Transcribe</h2>
+      <button class="btn ghost" id="btn-close-json">Close</button>
+    </div>
+    <div class="body"><textarea id="json-area" spellcheck="false"></textarea></div>
+    <div class="foot">
+      <div></div>
+      <div class="right">
+        <button class="btn ghost" id="btn-json-cancel">Cancel</button>
+        <button class="btn primary" id="btn-json-apply">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg-chain">
+  <div class="modal" style="width:min(820px,92vw)">
+    <div class="head">
+      <h2 id="chain-modal-title">Inscribe Chain</h2>
+      <button class="btn ghost" id="btn-close-chain">Close</button>
+    </div>
+    <div class="body"><div id="chain-modal-body"></div></div>
+    <div class="foot">
+      <button class="btn danger" id="btn-chain-delete">Banish</button>
+      <div class="right">
+        <button class="btn ghost" id="btn-chain-cancel">Cancel</button>
+        <button class="btn primary" id="btn-chain-save">Inscribe</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg-classifier">
+  <div class="modal" style="width:min(420px,92vw)">
+    <div class="head">
+      <h2 id="cls-title">Sigil</h2>
+      <button class="btn ghost" id="btn-close-cls">Close</button>
+    </div>
+    <div class="body">
+      <label>Name</label>
+      <input type="text" id="cls-name" placeholder="networking">
+      <div style="margin-top:12px"><label>Glyph</label>
+        <div id="cls-glyph-picker" style="display:flex;flex-wrap:wrap;gap:4px;max-height:160px;overflow-y:auto;border:1px solid var(--panel-edge);padding:6px;"></div>
+      </div>
+      <div style="margin-top:12px"><label>Tint</label>
+        <div id="cls-tint-picker" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn danger" id="btn-cls-delete" style="display:none">Banish</button>
+      <div class="right">
+        <button class="btn ghost" id="btn-cls-cancel">Cancel</button>
+        <button class="btn primary" id="btn-cls-save">Bind</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+%SCRIPT%
+</script>
+</body>
+</html>

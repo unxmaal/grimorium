@@ -56,5 +56,51 @@ If you keep the same dashboard on multiple machines (your laptop and another hou
 
 ## File layout
 
-There is one file. It is `index.html`. Background canvas, decorative SVG, all CSS, all JavaScript, all state management, all UI. No build step, no dependencies, no `package.json`.
+The deployment artifact is one file: `index.html` at the repo root. It bundles all CSS and all JavaScript inline, no external assets. Open it directly, scp it anywhere, drop it on a USB stick. That property is the point.
+
+The source lives in `src/` as modules and gets bundled into `index.html` by `build.js`. The split:
+
+```
+src/
+  template.html            HTML scaffold with %STYLES% and %SCRIPT% placeholders
+  styles.css               all CSS
+  js/
+    main.js                entry; wires modules to DOM
+    state.js               aggregateChainState, fmtLatency, helpers
+    storage.js             config schema, defaults, migration, persist
+    probes.js              probeDoh, probeHttp, probeWsTcp
+    runner.js              runChain, scanAll
+    layout.js              autoGridPosition, computeGroupedLayout (pure math)
+    render.js              buildCard, refreshCard, DOM helpers
+    drag.js                drag-threshold + drop-target helpers
+    theme.js               active theme registry
+    themes/grimorium.js    the grimoire look: labels, glyphs, decoration
+```
+
+## Development
+
+```
+npm install         install esbuild + vitest + jsdom
+npm run build       bundle src/ into index.html
+npm run dev         same, watching for changes
+npm test            run the vitest suite
+npm run test:watch  TDD loop
+```
+
+Tests live in `test/` mirroring the module layout. The harness is vitest with jsdom for DOM-touching code. Mocks for `fetch` and `WebSocket` live in `test/helpers/mocks.js`; chain/config fixtures in `test/helpers/fixtures.js`.
+
+Tests assert on semantic state values (`ok`, `bad`, `skipped`), not display strings (`HOLDS`, `SEVERED`). Display strings come from the active theme and are expected to change.
+
+Going forward: write a failing test before any feature or bug fix. The existing suite is the baseline.
+
+## Themes
+
+The grimoire look is the only theme that ships, but it is not load-bearing. The theme module (`src/js/theme.js`) registers the active theme, and the grimoire theme (`src/js/themes/grimorium.js`) provides:
+
+- `labels.state`: display strings for the six semantic states
+- `statusColorVar(state)`: CSS `var(--…)` token for a state
+- `glyphs`: pool of characters used for classifier sigils and background runes
+- `createDecoration(canvas, svgRoot)`: stateful instance that owns the canvas embers, the rotating sigil, and the rune scatter
+
+Component code uses the theme through these APIs and never references grimoire-specific names directly. A different theme would be a sibling module exporting the same shape with different values.
 
