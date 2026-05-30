@@ -1,0 +1,1742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GRIMORIUM // internal divination</title>
+<style>
+  :root {
+    --bg-0: #0c0703;
+    --bg-1: #1a0e07;
+    --bg-2: #261509;
+    --vellum: #d8b97a;
+    --vellum-dim: #8a7048;
+    --ink: #ead4a3;
+    --ink-dim: #9b7d4b;
+    --ink-faint: #4a3a22;
+    --gold: #ffcf3f;
+    --gold-dim: #b8910e;
+    --gold-bright: #ffe88c;
+    --amber: #d18b1d;
+    --brown: #6b3a14;
+    --brown-deep: #3a1d08;
+    --moss: #5f9a3a;
+    --verdant: #8ee066;
+    --verdant-bright: #b9f08c;
+    --sienna: #b8521c;
+    --rust: #8a3214;
+    --panel: rgba(12, 7, 3, 0.78);
+    --panel-edge: rgba(255, 207, 63, 0.22);
+    --serif: "TeX Gyre Pagella", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, "Hoefler Text", Georgia, serif;
+    --mono: ui-monospace, "JetBrains Mono", "Iosevka", Menlo, Consolas, monospace;
+    --glyph: "Noto Sans Symbols", "Noto Sans Symbols 2", "DejaVu Sans", "Segoe UI Symbol", "Apple Symbols", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(ellipse at 50% 40%, var(--bg-2) 0%, var(--bg-1) 40%, var(--bg-0) 85%);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 13px;
+    line-height: 1.5;
+    overflow: hidden;
+    letter-spacing: 0.02em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Parchment grain + vignette overlay */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background-image:
+      radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(0,0,0,0.55) 100%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.42 0 0 0 0 0.18 0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+  }
+
+  /* Parchment canvas: embers, glow zones */
+  #parchment {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    display: block;
+  }
+
+  /* Background decoration: tessellated triangles + scattered runes + center sigil */
+  #background-decor {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Host card container (HTML, draggable) */
+  #cards {
+    position: fixed; inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: fixed; left: 0; right: 0; top: 0;
+    z-index: 10;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 22px;
+    background: linear-gradient(to bottom, rgba(12,7,3,0.96), rgba(12,7,3,0.6) 80%, transparent);
+    border-bottom: 1px solid var(--panel-edge);
+  }
+  .topbar .brand {
+    font-family: var(--serif);
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-size: 14px;
+    text-shadow: 0 0 12px rgba(255, 207, 63, 0.35);
+  }
+  .topbar .brand .sub {
+    color: var(--ink-dim);
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    margin-left: 8px;
+    font-style: italic;
+    font-size: 11px;
+  }
+  .topbar .spacer { flex: 1; }
+  .topbar .meta {
+    color: var(--ink-dim);
+    font-size: 11px;
+    font-family: var(--mono);
+    display: flex; gap: 16px;
+  }
+  .topbar .meta .k { color: var(--ink-faint); margin-right: 5px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .topbar .meta .v { color: var(--ink); }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    background: linear-gradient(to bottom, rgba(255,207,63,0.06), rgba(255,207,63,0.02));
+    color: var(--gold);
+    border: 1px solid var(--panel-edge);
+    padding: 6px 14px;
+    font-family: var(--serif);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s, color 0.18s, border-color 0.18s;
+    border-radius: 1px;
+    position: relative;
+  }
+  .btn:hover {
+    background: linear-gradient(to bottom, rgba(255,207,63,0.14), rgba(255,207,63,0.06));
+    color: var(--gold-bright);
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(255, 207, 63, 0.25) inset, 0 0 14px rgba(255, 207, 63, 0.15);
+  }
+  .btn.primary {
+    background: linear-gradient(to bottom, rgba(142, 224, 102, 0.12), rgba(95, 154, 58, 0.04));
+    color: var(--verdant);
+    border-color: rgba(142, 224, 102, 0.45);
+  }
+  .btn.primary:hover {
+    background: linear-gradient(to bottom, rgba(142, 224, 102, 0.22), rgba(95, 154, 58, 0.08));
+    color: var(--verdant-bright);
+    border-color: var(--verdant);
+    box-shadow: 0 0 14px rgba(142, 224, 102, 0.35) inset, 0 0 16px rgba(142, 224, 102, 0.25);
+  }
+  .btn.danger { color: var(--sienna); border-color: rgba(184, 82, 28, 0.45); }
+  .btn.danger:hover { color: #e07a36; border-color: var(--sienna); box-shadow: 0 0 12px rgba(184, 82, 28, 0.3) inset; }
+  .btn.ghost { background: transparent; color: var(--ink-dim); border-color: var(--ink-faint); }
+  .btn.ghost:hover { color: var(--ink); border-color: var(--vellum-dim); box-shadow: none; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+  /* ---------- host cards ---------- */
+  .card {
+    position: absolute;
+    width: 200px;
+    min-height: 84px;
+    background: linear-gradient(to bottom, rgba(26, 14, 7, 0.92), rgba(12, 7, 3, 0.92));
+    border: 1px solid var(--gold);
+    color: var(--ink);
+    font-family: var(--serif);
+    user-select: none;
+    pointer-events: auto;
+    box-shadow:
+      0 0 0 1px rgba(255, 207, 63, 0.08),
+      0 6px 14px rgba(0,0,0,0.55);
+    transition: box-shadow 0.18s, border-color 0.2s, transform 0.05s linear;
+    will-change: left, top;
+  }
+  .card::before, .card::after {
+    content: ""; position: absolute; width: 9px; height: 9px;
+    border: 1px solid var(--gold);
+    opacity: 0.75;
+    pointer-events: none;
+  }
+  .card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .card::after  { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .card:hover {
+    box-shadow:
+      0 0 0 1px rgba(255, 207, 63, 0.16),
+      0 0 18px rgba(255, 207, 63, 0.18),
+      0 8px 18px rgba(0,0,0,0.6);
+  }
+  .card.dragging {
+    box-shadow:
+      0 0 0 1px rgba(255, 207, 63, 0.4),
+      0 0 28px rgba(255, 207, 63, 0.45),
+      0 18px 38px rgba(0,0,0,0.75);
+    z-index: 30 !important;
+  }
+  .card.dragging .card-header { cursor: grabbing; }
+
+  /* status border tints */
+  .card.state-ok    { border-color: var(--verdant); box-shadow: 0 0 0 1px rgba(142,224,102,0.16), 0 0 12px rgba(142,224,102,0.18), 0 6px 14px rgba(0,0,0,0.55); }
+  .card.state-warn  { border-color: var(--amber);   box-shadow: 0 0 0 1px rgba(209,139,29,0.16),  0 0 12px rgba(209,139,29,0.18),  0 6px 14px rgba(0,0,0,0.55); }
+  .card.state-bad   { border-color: var(--sienna);  box-shadow: 0 0 0 1px rgba(184,82,28,0.18),   0 0 14px rgba(184,82,28,0.22),   0 6px 14px rgba(0,0,0,0.55); }
+  .card.state-check { border-color: var(--gold-bright); animation: card-pulse 1.2s ease-in-out infinite; }
+  .card.state-unk   { border-color: var(--gold-dim); }
+  .card.state-ok::before, .card.state-ok::after       { border-color: var(--verdant); }
+  .card.state-warn::before, .card.state-warn::after   { border-color: var(--amber); }
+  .card.state-bad::before, .card.state-bad::after     { border-color: var(--sienna); }
+  .card.state-check::before, .card.state-check::after { border-color: var(--gold-bright); }
+  .card.state-unk::before, .card.state-unk::after     { border-color: var(--gold-dim); }
+
+  @keyframes card-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(255, 232, 140, 0.2),  0 0 12px rgba(255, 232, 140, 0.18), 0 6px 14px rgba(0,0,0,0.55); }
+    50%      { box-shadow: 0 0 0 1px rgba(255, 232, 140, 0.45), 0 0 24px rgba(255, 232, 140, 0.45), 0 6px 14px rgba(0,0,0,0.55); }
+  }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 11px;
+    border-bottom: 1px solid rgba(255, 207, 63, 0.16);
+    cursor: grab;
+    gap: 8px;
+  }
+  .card-name {
+    font-family: var(--serif);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .card-pill {
+    display: inline-block;
+    padding: 1px 7px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-radius: 1px;
+    border: 1px solid currentColor;
+    font-family: var(--serif);
+    color: var(--gold-dim);
+    flex-shrink: 0;
+  }
+  .card-pill.ok    { color: var(--verdant); }
+  .card-pill.warn  { color: var(--amber); }
+  .card-pill.bad   { color: var(--sienna); }
+  .card-pill.check { color: var(--gold-bright); }
+  .card-pill.unk   { color: var(--gold-dim); }
+
+  .card-body {
+    padding: 6px 11px 9px 11px;
+    cursor: pointer;
+  }
+  .card-addr {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .card-services {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    min-height: 9px;
+  }
+  .svc-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    box-shadow: 0 0 4px var(--gold-dim);
+    cursor: pointer;
+    transition: transform 0.12s;
+  }
+  .svc-dot:hover { transform: scale(1.4); }
+  .svc-dot.ok    { background: var(--verdant);      box-shadow: 0 0 6px var(--verdant); }
+  .svc-dot.warn  { background: var(--amber);        box-shadow: 0 0 6px var(--amber); }
+  .svc-dot.bad   { background: var(--sienna);       box-shadow: 0 0 6px var(--sienna); }
+  .svc-dot.check { background: var(--gold-bright);  box-shadow: 0 0 8px var(--gold-bright); animation: dot-pulse 0.9s ease-in-out infinite; }
+  .svc-dot.unk   { background: var(--gold-dim);     box-shadow: 0 0 4px var(--gold-dim); opacity: 0.6; }
+
+  @keyframes dot-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.35); }
+  }
+
+  .card-empty {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--ink-faint);
+    font-style: italic;
+    letter-spacing: 0.1em;
+  }
+
+  /* ---------- side panel ---------- */
+  .sidepanel {
+    position: fixed; right: 0; top: 50px; bottom: 180px;
+    width: 340px;
+    z-index: 9;
+    background: var(--panel);
+    backdrop-filter: blur(8px);
+    border-left: 1px solid var(--panel-edge);
+    padding: 18px;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    font-family: var(--serif);
+  }
+  .sidepanel.open { transform: translateX(0); }
+  .sidepanel h3 {
+    margin: 0 0 8px 0;
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .sidepanel .section { margin-bottom: 18px; }
+  .sidepanel .row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .sidepanel .row .k { color: var(--ink-dim); letter-spacing: 0.12em; text-transform: uppercase; }
+  .sidepanel .row .v { color: var(--ink); }
+  .pill {
+    display: inline-block;
+    padding: 1px 8px;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    border-radius: 1px;
+    border: 1px solid currentColor;
+    font-family: var(--serif);
+  }
+  .pill.ok    { color: var(--verdant); }
+  .pill.warn  { color: var(--amber); }
+  .pill.bad   { color: var(--sienna); }
+  .pill.unk   { color: var(--vellum-dim); }
+  .pill.check { color: var(--gold-bright); }
+
+  /* ---------- console ---------- */
+  .console {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    height: 160px;
+    z-index: 9;
+    background: linear-gradient(to top, rgba(12,7,3,0.96), rgba(12,7,3,0.6) 80%, transparent);
+    border-top: 1px solid var(--panel-edge);
+    padding: 10px 22px 12px 22px;
+    display: flex; flex-direction: column;
+  }
+  .console .header {
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--ink-dim);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: var(--serif);
+  }
+  .console .header .candle {
+    display: inline-block; width: 6px; height: 6px;
+    background: var(--gold-bright); border-radius: 50%;
+    box-shadow: 0 0 8px var(--gold);
+    margin-right: 8px;
+    animation: candle-flicker 1.4s ease-in-out infinite;
+  }
+  .console .body {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--ink);
+    font-family: var(--mono);
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-faint) transparent;
+  }
+  .console .body::-webkit-scrollbar { width: 4px; }
+  .console .body::-webkit-scrollbar-thumb { background: var(--ink-faint); }
+  .console .line { white-space: pre-wrap; word-break: break-word; }
+  .console .ts { color: var(--ink-faint); margin-right: 8px; }
+  .console .tag-info { color: var(--gold); }
+  .console .tag-ok { color: var(--verdant); }
+  .console .tag-warn { color: var(--amber); }
+  .console .tag-bad { color: var(--sienna); }
+  .console .tag-dim { color: var(--ink-dim); }
+
+  @keyframes candle-flicker {
+    0%   { opacity: 1;    transform: scale(1); }
+    20%  { opacity: 0.5;  transform: scale(0.85); }
+    40%  { opacity: 1;    transform: scale(1.05); }
+    60%  { opacity: 0.75; transform: scale(0.95); }
+    80%  { opacity: 1;    transform: scale(1); }
+    100% { opacity: 0.92; transform: scale(0.98); }
+  }
+
+  /* ---------- modal ---------- */
+  .modal-bg {
+    position: fixed; inset: 0;
+    z-index: 50;
+    background: rgba(12, 7, 3, 0.78);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center; justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    width: min(920px, 92vw);
+    max-height: 86vh;
+    background: linear-gradient(to bottom, var(--bg-1), var(--bg-0));
+    border: 1px solid var(--panel-edge);
+    box-shadow: 0 0 60px rgba(255, 207, 63, 0.18), 0 0 0 1px rgba(255, 207, 63, 0.05) inset;
+    display: flex; flex-direction: column;
+    border-radius: 2px;
+    position: relative;
+  }
+  .modal::before, .modal::after {
+    content: ""; position: absolute; width: 18px; height: 18px;
+    border: 1px solid var(--gold);
+    opacity: 0.5;
+  }
+  .modal::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .modal::after  { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+  .modal .head {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--panel-edge);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal .head h2 {
+    margin: 0; color: var(--gold);
+    font-family: var(--serif);
+    font-size: 14px; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600;
+  }
+  .modal .body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal .foot { padding: 14px 22px; border-top: 1px solid var(--panel-edge);
+    display: flex; justify-content: space-between; gap: 8px; }
+  .modal .foot .right { display: flex; gap: 8px; }
+  .modal label {
+    display: block; color: var(--ink-dim);
+    font-family: var(--serif);
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .modal input, .modal select, .modal textarea {
+    width: 100%;
+    background: rgba(12, 7, 3, 0.7);
+    border: 1px solid var(--panel-edge);
+    color: var(--ink);
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    border-radius: 1px;
+    outline: none;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px rgba(255, 207, 63, 0.3);
+  }
+  .modal textarea { min-height: 220px; resize: vertical; }
+
+  .host-block {
+    border: 1px solid var(--panel-edge);
+    padding: 12px;
+    margin-bottom: 10px;
+    background: rgba(12, 7, 3, 0.45);
+  }
+  .host-block .head-row {
+    display: grid; grid-template-columns: 1fr 1fr auto;
+    gap: 8px; align-items: end; margin-bottom: 8px;
+  }
+  .svc-row {
+    display: grid; grid-template-columns: 1.2fr 0.9fr 2fr auto;
+    gap: 6px; margin-bottom: 4px; align-items: center;
+  }
+  .svc-row .x {
+    background: transparent; color: var(--sienna);
+    border: 1px solid transparent;
+    width: 26px; height: 26px; cursor: pointer;
+    font-family: var(--mono);
+  }
+  .svc-row .x:hover { border-color: var(--sienna); }
+  .add-svc { margin-top: 6px; font-size: 10px; padding: 4px 10px; }
+
+  /* ---------- empty hint ---------- */
+  .empty-hint {
+    position: fixed;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--ink-dim);
+    z-index: 5;
+    pointer-events: none;
+    font-family: var(--serif);
+  }
+  .empty-hint h1 {
+    color: var(--gold);
+    font-size: 28px; letter-spacing: 0.5em;
+    margin: 0 0 14px 0;
+    text-shadow: 0 0 14px rgba(255, 207, 63, 0.4);
+  }
+  .empty-hint .glyph-row {
+    font-family: var(--glyph);
+    font-size: 22px; letter-spacing: 0.4em;
+    color: var(--vellum-dim);
+    margin: 8px 0;
+  }
+
+  /* ---------- tooltip ---------- */
+  .tip {
+    position: fixed;
+    z-index: 11;
+    background: linear-gradient(to bottom, var(--bg-1), var(--bg-0));
+    border: 1px solid var(--panel-edge);
+    padding: 10px 14px;
+    pointer-events: none;
+    font-size: 11px;
+    min-width: 200px;
+    box-shadow: 0 0 22px rgba(255, 207, 63, 0.25);
+    display: none;
+    font-family: var(--mono);
+  }
+  .tip .ttl {
+    color: var(--gold);
+    font-family: var(--serif);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+  .tip .row {
+    display: flex; justify-content: space-between;
+    font-size: 10px;
+  }
+  .tip .row .k { color: var(--ink-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ---------- background-decor SVG classes ---------- */
+  .bg-tri {
+    fill: none;
+    stroke: var(--ink-faint);
+    stroke-width: 0.6;
+    opacity: 0.5;
+  }
+  .bg-tri-alt {
+    fill: rgba(107, 58, 20, 0.04);
+    stroke: none;
+  }
+  .bg-rune {
+    fill: var(--gold-dim);
+    opacity: 0.16;
+    font-family: var(--glyph);
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+  .bg-sigil-stroke {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1;
+  }
+  .bg-sigil-text {
+    fill: var(--gold);
+    font-family: var(--glyph);
+    text-anchor: middle;
+    dominant-baseline: central;
+    opacity: 0.85;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="parchment"></canvas>
+<svg id="background-decor" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="cards"></div>
+
+<div class="topbar">
+  <div class="brand">Grimorium<span class="sub">// internal divination</span></div>
+  <div class="spacer"></div>
+  <div class="meta">
+    <div><span class="k">Nodes</span><span class="v" id="meta-hosts">0</span></div>
+    <div><span class="k">Rites</span><span class="v" id="meta-svcs">0</span></div>
+    <div><span class="k">Hold</span><span class="v" id="meta-up" style="color:var(--verdant)">0</span></div>
+    <div><span class="k">Sever</span><span class="v" id="meta-down" style="color:var(--sienna)">0</span></div>
+    <div><span class="k">Last</span><span class="v" id="meta-last">never</span></div>
+  </div>
+  <button class="btn ghost" id="btn-relayout" title="Re-arrange cards in a fresh grid">Re-Arrange</button>
+  <button class="btn ghost" id="btn-config">Inscribe</button>
+  <button class="btn primary" id="btn-scan">▸ Scry All</button>
+</div>
+
+<div class="empty-hint" id="empty-hint">
+  <h1>GRIMORIUM</h1>
+  <div class="glyph-row">☉ ☽ ☿ ♀ ♂ ♃ ♄</div>
+  <div>no sigils inscribed.</div>
+  <div style="margin-top:8px">press <b style="color:var(--gold)">INSCRIBE</b> to begin the rite.</div>
+</div>
+
+<aside class="sidepanel" id="sidepanel">
+  <div id="side-content"></div>
+</aside>
+
+<div class="console">
+  <div class="header">
+    <div><span class="candle"></span>Oracle Log</div>
+    <div><button class="btn ghost" id="btn-clear-log" style="padding:2px 8px;font-size:9px;">Purge</button></div>
+  </div>
+  <div class="body" id="log"></div>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="head">
+      <h2>Inscribe the Grimoire</h2>
+      <button class="btn ghost" id="btn-close-modal">Close</button>
+    </div>
+    <div class="body" id="modal-body">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px;gap:10px;align-items:center;">
+        <div style="color:var(--ink-dim);font-size:11px;font-family:var(--serif);">
+          Bind nodes and the rites to scry upon them. HTTP yields the truest divination;
+          TCP probes are heuristic — the browser cannot open raw sockets.
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn ghost" id="btn-export">Export</button>
+          <button class="btn ghost" id="btn-import">Import</button>
+        </div>
+      </div>
+      <div id="hosts-editor"></div>
+      <button class="btn" id="btn-add-host">+ Add Node</button>
+
+      <div style="margin-top:20px;padding-top:14px;border-top:1px dashed var(--ink-faint)">
+        <label>Rite Settings</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div><label>Auto-divine (sec, 0=off)</label>
+            <input type="number" id="cfg-interval" min="0" max="3600" step="1" value="0"></div>
+          <div><label>Probe Timeout (ms)</label>
+            <input type="number" id="cfg-timeout" min="500" max="30000" step="100" value="5000"></div>
+          <div><label>Parallel Probes</label>
+            <input type="number" id="cfg-parallel" min="1" max="32" step="1" value="6"></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn danger" id="btn-reset">Reset to Defaults</button>
+      <div class="right">
+        <button class="btn ghost" id="btn-cancel">Cancel</button>
+        <button class="btn primary" id="btn-save">Inscribe &amp; Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg-json">
+  <div class="modal" style="width:min(720px,92vw)">
+    <div class="head">
+      <h2 id="json-title">Transcribe</h2>
+      <button class="btn ghost" id="btn-close-json">Close</button>
+    </div>
+    <div class="body"><textarea id="json-area" spellcheck="false"></textarea></div>
+    <div class="foot">
+      <div></div>
+      <div class="right">
+        <button class="btn ghost" id="btn-json-cancel">Cancel</button>
+        <button class="btn primary" id="btn-json-apply">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+"use strict";
+
+/* ---------------------------------------------------------------------------
+ * GRIMORIUM — occult-themed internal monitoring dashboard.
+ * Hosts are draggable gold-bordered cards over a decorative parchment +
+ * triangle-tessellation + rune background. Browser-only, no external deps.
+ * ------------------------------------------------------------------------- */
+
+const STORE_KEY = "grimorium.config.v2";
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+const CARD_W = 200;
+const CARD_H_MIN = 84;
+const GAP = 14;
+const PAD_TOP = 70;
+const PAD_BOTTOM = 200;
+const PAD_LEFT = 28;
+const PAD_RIGHT = 28;
+const SIDEPANEL_W = 360;
+const DRAG_THRESHOLD = 4;
+
+function cryptoRandomId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+const DEFAULT_CONFIG = {
+  hosts: [
+    { id: cryptoRandomId(), name: "router",             address: "192.168.1.10",   services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",               address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",             address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                   address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",               address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "newnas",                 address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                 address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "Mac-mini",               address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "silver",                 address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                  address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",            address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "styx",                   address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED", address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",   address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",          address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",         address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",          address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",           address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "retro",                  address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",                 address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",            address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "Mac",                    address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",        address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "REDACTED",      address: "192.168.1.10",  services: [] },
+    { id: cryptoRandomId(), name: "phaser",                 address: "192.168.1.10", services: [] },
+    { id: cryptoRandomId(), name: "orange",                 address: "192.168.1.10", services: [] }
+  ],
+  positions: {},   // hostId -> { x, y }
+  interval: 0,
+  timeoutMs: 5000,
+  parallel: 6
+};
+
+/* Rune pool — used purely for background decoration. */
+const GLYPHS = [
+  "☉","☽","☿","♀","♂","♃","♄","♅","♆","☥","⚸","⚝","⚹","⚛","♁","☸","☫","⛤","⛧",
+  "✶","✷","✸","✹","✺","❂","✦","✧","✪","⌘","⌬","☼","☯","⚕","⚚","⚖","⚜","☬"
+];
+
+let config = loadConfig();
+let statusMap = new Map();
+let selectedHostId = null;
+let scanInFlight = false;
+let intervalTimer = null;
+let cardEls = new Map();    // hostId -> .card DOM element
+let embers = [];
+let sigilRotEl = null;
+
+/* ---------- utilities ---------- */
+
+function $(sel, root = document) { return root.querySelector(sel); }
+function $$(sel, root = document) { return [...root.querySelectorAll(sel)]; }
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === "class") e.className = attrs[k];
+    else if (k === "style") Object.assign(e.style, attrs[k]);
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+    else if (attrs[k] !== false && attrs[k] != null) e.setAttribute(k, attrs[k]);
+  }
+  for (const k of kids) {
+    if (k == null || k === false) continue;
+    e.append(k.nodeType ? k : document.createTextNode(k));
+  }
+  return e;
+}
+function svg(tag, attrs = {}) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) {
+    if (attrs[k] === false || attrs[k] == null) continue;
+    e.setAttribute(k, attrs[k]);
+  }
+  return e;
+}
+function fmtTime(d = new Date()) { return d.toTimeString().slice(0, 8); }
+function fmtLatency(ms) {
+  if (ms == null) return "—";
+  if (ms < 1) return "<1ms";
+  if (ms < 1000) return Math.round(ms) + "ms";
+  return (ms / 1000).toFixed(2) + "s";
+}
+function hash32(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+function occultState(s) {
+  return s === "ok"   ? "HOLDS"
+       : s === "warn" ? "STIRS"
+       : s === "bad"  ? "SEVERED"
+       : s === "check"? "DIVINING"
+       :                "DORMANT";
+}
+function pillCls(state) {
+  return state === "ok" ? "ok" : state === "warn" ? "warn"
+       : state === "bad" ? "bad" : state === "check" ? "check" : "unk";
+}
+
+/* ---------- config persistence ---------- */
+
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return structuredClone(DEFAULT_CONFIG);
+    const c = JSON.parse(raw);
+    for (const h of c.hosts || []) {
+      h.id ||= cryptoRandomId();
+      for (const s of h.services || []) s.id ||= cryptoRandomId();
+    }
+    c.positions ||= {};
+    c.interval ??= 0;
+    c.timeoutMs ??= 5000;
+    c.parallel ??= 6;
+    return c;
+  } catch (e) {
+    console.warn("config load failed, using defaults:", e);
+    return structuredClone(DEFAULT_CONFIG);
+  }
+}
+function saveConfig() { localStorage.setItem(STORE_KEY, JSON.stringify(config)); }
+
+/* ---------- logging ---------- */
+
+function log(msg, tag = "info") {
+  const body = $("#log");
+  const line = el("div", { class: "line" },
+    el("span", { class: "ts" }, "[" + fmtTime() + "]"),
+    el("span", { class: "tag-" + tag }, "▸ "),
+    msg
+  );
+  body.append(line);
+  body.scrollTop = body.scrollHeight;
+  while (body.childElementCount > 500) body.firstChild.remove();
+}
+
+/* ---------- probes ---------- */
+
+async function probeService(svc, timeoutMs) {
+  if (svc.type === "http")       return probeHttp(svc.target, timeoutMs);
+  if (svc.type === "tcp")        return probeTcp(svc.target, timeoutMs);
+  if (svc.type === "ws" || svc.type === "wss") return probeWs(svc, timeoutMs);
+  return { state: "bad", latency: null, detail: "unknown probe type: " + svc.type };
+}
+
+async function probeHttp(url, timeoutMs) {
+  if (!/^https?:\/\//i.test(url)) url = "http://" + url;
+  const ctl = new AbortController();
+  const t0 = performance.now();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { mode: "no-cors", cache: "no-store", redirect: "follow", signal: ctl.signal, headers: {} });
+    const latency = performance.now() - t0;
+    clearTimeout(timer);
+    let state = "ok", detail = "responded";
+    if (r.type !== "opaque" && r.status >= 400) {
+      state = r.status >= 500 ? "bad" : "warn";
+      detail = "HTTP " + r.status;
+    } else if (latency > 1500) {
+      state = "warn"; detail = "slow (" + fmtLatency(latency) + ")";
+    }
+    return { state, latency, detail };
+  } catch (e) {
+    clearTimeout(timer);
+    const latency = performance.now() - t0;
+    if (e.name === "AbortError") return { state: "bad", latency, detail: "timeout (" + fmtLatency(latency) + ")" };
+    return { state: "bad", latency, detail: e.message || "fetch failed" };
+  }
+}
+
+async function probeTcp(target, timeoutMs) {
+  const m = /^([^:]+):(\d+)$/.exec(target);
+  if (!m) return { state: "bad", latency: null, detail: "expected host:port" };
+  const host = m[1], port = m[2];
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    const img = new Image();
+    let settled = false;
+    const finish = (state, detail) => {
+      if (settled) return;
+      settled = true;
+      const latency = performance.now() - t0;
+      img.onload = img.onerror = null;
+      img.src = "";
+      resolve({ state, latency, detail });
+    };
+    img.onload  = () => finish("ok", "responded");
+    img.onerror = () => {
+      const latency = performance.now() - t0;
+      if (latency < 1500) finish("ok",  "port open (" + fmtLatency(latency) + ")");
+      else                finish("bad", "no response (" + fmtLatency(latency) + ")");
+    };
+    setTimeout(() => finish("bad", "timeout (" + fmtLatency(timeoutMs) + ")"), timeoutMs);
+    img.src = "http://" + host + ":" + port + "/?_=" + Date.now();
+  });
+}
+
+async function probeWs(svc, timeoutMs) {
+  const url = svc.target.startsWith("ws://") || svc.target.startsWith("wss://")
+    ? svc.target
+    : (svc.type === "wss" ? "wss://" : "ws://") + svc.target;
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    let settled = false, ws;
+    const finish = (state, detail) => {
+      if (settled) return;
+      settled = true;
+      const latency = performance.now() - t0;
+      try { ws && ws.close(); } catch (_) {}
+      resolve({ state, latency, detail });
+    };
+    try { ws = new WebSocket(url); }
+    catch (e) { return finish("bad", e.message || "ws init failed"); }
+    ws.onopen  = () => finish("ok", "handshake ok");
+    ws.onerror = () => {
+      const latency = performance.now() - t0;
+      if (latency < 1500) finish("warn", "port reachable, not WS");
+      else                finish("bad",  "unreachable");
+    };
+    setTimeout(() => finish("bad", "timeout"), timeoutMs);
+  });
+}
+
+/* ---------- scan ---------- */
+
+async function scanAll() {
+  if (scanInFlight) { log("a rite is already underway", "warn"); return; }
+  scanInFlight = true;
+  $("#btn-scan").disabled = true;
+  $("#btn-scan").textContent = "▸ divining…";
+
+  const allSvcs = [];
+  for (const h of config.hosts) for (const s of h.services) allSvcs.push({ h, s });
+
+  if (!allSvcs.length) {
+    log("no rites are bound to these nodes", "warn");
+    scanInFlight = false;
+    $("#btn-scan").disabled = false;
+    $("#btn-scan").textContent = "▸ Scry All";
+    return;
+  }
+
+  log("the rite begins // " + allSvcs.length + " rites across " + config.hosts.length + " nodes", "info");
+
+  for (const { h, s } of allSvcs) {
+    statusMap.set(s.id, { state: "check", latency: null, ts: Date.now(), detail: "divining…" });
+  }
+  for (const h of new Set(allSvcs.map(x => x.h))) updateHostVisual(h.id);
+  updateMeta();
+
+  const concurrency = Math.max(1, Math.min(config.parallel || 6, 32));
+  let idx = 0, done = 0;
+
+  await Promise.all(Array.from({ length: concurrency }, async () => {
+    while (idx < allSvcs.length) {
+      const my = idx++;
+      const { h, s } = allSvcs[my];
+      log(h.name + " / " + s.name + " (" + s.type + ") " + s.target, "dim");
+      const result = await probeService(s, config.timeoutMs);
+      statusMap.set(s.id, { ...result, ts: Date.now() });
+      const tag = result.state === "ok" ? "ok" : result.state === "warn" ? "warn"
+                : result.state === "bad" ? "bad" : "info";
+      log(h.name + " / " + s.name + " — " + occultState(result.state)
+          + " (" + fmtLatency(result.latency) + ") " + result.detail, tag);
+      done++;
+      updateHostVisual(h.id);
+      updateMeta();
+      renderSidepanel();
+    }
+  }));
+
+  log("the rite concludes // " + done + " divinations cast", "info");
+  $("#meta-last").textContent = fmtTime();
+  scanInFlight = false;
+  $("#btn-scan").disabled = false;
+  $("#btn-scan").textContent = "▸ Scry All";
+}
+
+/* ---------- meta ---------- */
+
+function aggregateHostState(host) {
+  let worst = "unk";
+  const order = { ok: 1, check: 0, unk: 0, warn: 2, bad: 3 };
+  let hasAny = false, total = 0, up = 0;
+  for (const s of host.services) {
+    total++;
+    const st = statusMap.get(s.id);
+    if (!st) continue;
+    hasAny = true;
+    if (st.state === "ok") up++;
+    if (order[st.state] > order[worst]) worst = st.state;
+  }
+  return { state: hasAny ? worst : "unk", total, up };
+}
+
+function statusColorVar(state) {
+  return state === "ok"   ? "var(--verdant)"
+       : state === "warn" ? "var(--amber)"
+       : state === "bad"  ? "var(--sienna)"
+       : state === "check"? "var(--gold-bright)"
+       :                    "var(--vellum-dim)";
+}
+
+function updateMeta() {
+  const hostCount = config.hosts.length;
+  let svcCount = 0, up = 0, down = 0;
+  for (const h of config.hosts) {
+    for (const s of h.services) {
+      svcCount++;
+      const st = statusMap.get(s.id);
+      if (!st) continue;
+      if (st.state === "ok") up++;
+      else if (st.state === "bad") down++;
+    }
+  }
+  $("#meta-hosts").textContent = hostCount;
+  $("#meta-svcs").textContent = svcCount;
+  $("#meta-up").textContent = up;
+  $("#meta-down").textContent = down;
+  $("#empty-hint").style.display = hostCount === 0 ? "block" : "none";
+}
+
+/* ---------- background canvas: embers + warm glow zones ---------- */
+
+const cv = $("#parchment");
+const ctx = cv.getContext("2d", { alpha: true });
+let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+function sizeCanvas() {
+  dpr = Math.max(1, window.devicePixelRatio || 1);
+  cv.width  = window.innerWidth  * dpr;
+  cv.height = window.innerHeight * dpr;
+  cv.style.width  = window.innerWidth + "px";
+  cv.style.height = window.innerHeight + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function spawnEmber() {
+  const w = window.innerWidth, h = window.innerHeight;
+  const hue = Math.random() < 0.75 ? 40 + Math.random() * 16 : 28 + Math.random() * 8;
+  embers.push({
+    x: Math.random() * w,
+    y: h + 20,
+    vx: (Math.random() - 0.5) * 0.04,
+    vy: -(0.04 + Math.random() * 0.07),
+    r: 0.8 + Math.random() * 1.4,
+    life: 0,
+    maxLife: 9000 + Math.random() * 11000,
+    drift: Math.random() * Math.PI * 2,
+    driftFreq: 0.0003 + Math.random() * 0.0004,
+    hue,
+    alpha: 0.35 + Math.random() * 0.4
+  });
+}
+
+function drawCanvas(t, dt) {
+  const w = window.innerWidth, h = window.innerHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  const grads = [
+    { x: w * 0.5, y: h * 0.5, r: Math.min(w,h) * 0.7,  col: "rgba(120, 70, 18, 0.10)" },
+    { x: w * 0.2, y: h * 0.85, r: Math.min(w,h) * 0.5, col: "rgba(255, 180, 60, 0.06)" },
+    { x: w * 0.8, y: h * 0.15, r: Math.min(w,h) * 0.5, col: "rgba(200, 120, 30, 0.05)" }
+  ];
+  for (const g of grads) {
+    const rg = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, g.r);
+    rg.addColorStop(0, g.col);
+    rg.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = rg;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  for (let i = embers.length - 1; i >= 0; i--) {
+    const e = embers[i];
+    e.life += dt;
+    e.x += e.vx * dt + Math.sin(t * e.driftFreq + e.drift) * 0.04 * dt;
+    e.y += e.vy * dt;
+    if (e.y < -20 || e.life > e.maxLife) { embers.splice(i, 1); continue; }
+    const fade = e.life < 800 ? e.life / 800
+               : e.life > e.maxLife - 1200 ? Math.max(0, (e.maxLife - e.life) / 1200)
+               : 1;
+    const a = e.alpha * fade;
+    const rg = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r * 6);
+    rg.addColorStop(0,   `hsla(${e.hue}, 95%, 70%, ${a * 0.85})`);
+    rg.addColorStop(0.5, `hsla(${e.hue}, 95%, 60%, ${a * 0.25})`);
+    rg.addColorStop(1,   `hsla(${e.hue}, 95%, 60%, 0)`);
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r * 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `hsla(${e.hue}, 100%, 88%, ${a})`;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+let lastEmberSpawn = 0;
+function maybeSpawnEmber(t) {
+  if (embers.length < 40 && t - lastEmberSpawn > 220 + Math.random() * 200) {
+    spawnEmber();
+    lastEmberSpawn = t;
+  }
+}
+
+/* ---------- background decoration SVG ---------- */
+
+const decorSvg = $("#background-decor");
+
+function buildDecor() {
+  while (decorSvg.firstChild) decorSvg.removeChild(decorSvg.firstChild);
+  const w = window.innerWidth, h = window.innerHeight;
+  decorSvg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  decorSvg.setAttribute("width", w);
+  decorSvg.setAttribute("height", h);
+
+  // --- Triangle tessellation (faint wallpaper, fills viewport) ---
+  const triLayer = svg("g", { class: "decor-tri-layer" });
+  const side = 90;
+  const triH = side * Math.sqrt(3) / 2;
+  const cols = Math.ceil(w / (side / 2)) + 2;
+  const rows = Math.ceil(h / triH) + 2;
+  const offX = -side / 2, offY = -triH;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const isUp = (r + c) % 2 === 0;
+      const cx = offX + c * (side / 2) + (side / 2);
+      const topY = offY + r * triH;
+      const botY = topY + triH;
+      let d;
+      if (isUp) {
+        d = `M${cx},${topY} L${cx - side/2},${botY} L${cx + side/2},${botY} Z`;
+      } else {
+        d = `M${cx - side/2},${topY} L${cx + side/2},${topY} L${cx},${botY} Z`;
+      }
+      // Alternating very subtle fill on down triangles to create subtle pattern.
+      if (!isUp) triLayer.appendChild(svg("path", { class: "bg-tri-alt", d }));
+      triLayer.appendChild(svg("path", { class: "bg-tri", d }));
+    }
+  }
+  decorSvg.appendChild(triLayer);
+
+  // --- Scattered runes (stable per location seed) ---
+  const runeLayer = svg("g", { class: "decor-rune-layer" });
+  const runeCount = Math.round((w * h) / 38000);
+  // Deterministic via index-based hash so they don't jitter across renders within a session.
+  for (let i = 0; i < runeCount; i++) {
+    const seedX = hash32("rx" + i + "-" + w + "-" + h);
+    const seedY = hash32("ry" + i + "-" + w + "-" + h);
+    const x = 30 + (seedX % (w - 60));
+    const y = 30 + (seedY % (h - 60));
+    const glyph = GLYPHS[seedX % GLYPHS.length];
+    const size = 18 + (seedY % 22);
+    const opacity = 0.10 + ((seedY % 100) / 1000);
+    const t = svg("text", {
+      x, y,
+      class: "bg-rune",
+      "font-size": size,
+      opacity
+    });
+    t.textContent = glyph;
+    runeLayer.appendChild(t);
+  }
+  decorSvg.appendChild(runeLayer);
+
+  // --- Center sigil (slowly rotating) ---
+  const cx = w / 2, cy = h / 2;
+  const R = Math.min(w, h) * 0.38;
+  sigilRotEl = svg("g", { transform: `translate(${cx},${cy})` });
+  const inner = svg("g");
+  sigilRotEl.appendChild(inner);
+
+  inner.appendChild(svg("circle", { cx: 0, cy: 0, r: R, class: "bg-sigil-stroke", opacity: 0.35 }));
+  inner.appendChild(svg("circle", { cx: 0, cy: 0, r: R * 0.94, class: "bg-sigil-stroke", "stroke-width": 0.5, "stroke-dasharray": "1 6", opacity: 0.45 }));
+
+  // Heptagram.
+  const pts = 7;
+  let path = "";
+  for (let i = 0; i < pts * 2; i++) {
+    const j = (i * 3) % pts;
+    const ang = (j / pts) * Math.PI * 2 - Math.PI / 2;
+    const x = R * 0.86 * Math.cos(ang);
+    const y = R * 0.86 * Math.sin(ang);
+    path += (i === 0 ? "M" : "L") + x + "," + y + " ";
+  }
+  path += "Z";
+  inner.appendChild(svg("path", { d: path, class: "bg-sigil-stroke", "stroke-width": 0.7, opacity: 0.4 }));
+
+  // Inner pentagram.
+  let pent = "";
+  for (let i = 0; i < 10; i++) {
+    const j = (i * 2) % 5;
+    const ang = (j / 5) * Math.PI * 2 - Math.PI / 2;
+    const r = R * 0.4;
+    pent += (i === 0 ? "M" : "L") + (r * Math.cos(ang)) + "," + (r * Math.sin(ang)) + " ";
+  }
+  pent += "Z";
+  inner.appendChild(svg("path", { d: pent, class: "bg-sigil-stroke", "stroke-width": 0.6, opacity: 0.35 }));
+
+  // Outer rim glyphs.
+  for (let i = 0; i < 12; i++) {
+    const ang = (i / 12) * Math.PI * 2 - Math.PI / 2;
+    const x = R * 1.05 * Math.cos(ang);
+    const y = R * 1.05 * Math.sin(ang);
+    const g = GLYPHS[i % GLYPHS.length];
+    const t = svg("text", {
+      x, y,
+      class: "bg-sigil-text",
+      "font-size": Math.max(12, R * 0.06),
+      opacity: 0.5
+    });
+    t.textContent = g;
+    inner.appendChild(t);
+  }
+
+  inner.appendChild(svg("circle", { cx: 0, cy: 0, r: 2, fill: "var(--gold)", opacity: 0.6 }));
+  decorSvg.appendChild(sigilRotEl);
+}
+
+/* ---------- card layout + rendering ---------- */
+
+function cardHeightFor(host) {
+  // Body padding accommodates services row.
+  const svcCount = host.services.length;
+  const svcRows = Math.max(1, Math.ceil(svcCount / 12));
+  return CARD_H_MIN + Math.max(0, svcRows - 1) * 14;
+}
+
+function autoGridPosition(index) {
+  const sidePanelOpen = $("#sidepanel").classList.contains("open");
+  const effRight = sidePanelOpen ? SIDEPANEL_W : PAD_RIGHT;
+  const availW = Math.max(CARD_W, window.innerWidth - PAD_LEFT - effRight);
+  const cols = Math.max(1, Math.floor((availW + GAP) / (CARD_W + GAP)));
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  return {
+    x: PAD_LEFT + col * (CARD_W + GAP),
+    y: PAD_TOP + 6 + row * (CARD_H_MIN + GAP)
+  };
+}
+
+function getCardPosition(host, index) {
+  const saved = (config.positions || {})[host.id];
+  if (saved && typeof saved.x === "number" && typeof saved.y === "number") return saved;
+  return autoGridPosition(index);
+}
+
+function render() {
+  const root = $("#cards");
+  root.innerHTML = "";
+  cardEls.clear();
+  for (let i = 0; i < config.hosts.length; i++) {
+    const host = config.hosts[i];
+    const pos = getCardPosition(host, i);
+    const card = buildCard(host, pos);
+    root.appendChild(card);
+    cardEls.set(host.id, card);
+  }
+}
+
+function buildCard(host, pos) {
+  const card = el("div", {
+    class: "card",
+    "data-host-id": host.id,
+    style: { left: pos.x + "px", top: pos.y + "px" }
+  });
+  applyCardState(card, host);
+
+  const header = el("div", { class: "card-header" },
+    el("span", { class: "card-name", title: host.name }, host.name),
+    el("span", { class: "card-pill" }, "")
+  );
+  const body = el("div", { class: "card-body" },
+    el("div", { class: "card-addr" }, host.address || "—"),
+    el("div", { class: "card-services" })
+  );
+
+  card.append(header, body);
+
+  // Click body → open side panel.
+  body.addEventListener("click", () => selectHost(host.id));
+
+  // Drag handle = header. Click w/o drag also opens side panel.
+  header.addEventListener("mousedown", (e) => startCardDrag(e, card, host.id));
+
+  // Populate dynamic bits (pill, services).
+  refreshCardContent(card, host);
+
+  return card;
+}
+
+function applyCardState(card, host) {
+  const agg = aggregateHostState(host);
+  const cls = pillCls(agg.state);
+  card.classList.remove("state-ok", "state-warn", "state-bad", "state-check", "state-unk");
+  card.classList.add("state-" + cls);
+}
+
+function refreshCardContent(card, host) {
+  const agg = aggregateHostState(host);
+  const pill = card.querySelector(".card-pill");
+  pill.textContent = occultState(agg.state);
+  pill.className = "card-pill " + pillCls(agg.state);
+
+  const svcRoot = card.querySelector(".card-services");
+  svcRoot.innerHTML = "";
+  if (host.services.length === 0) {
+    svcRoot.append(el("span", { class: "card-empty" }, "no rites bound"));
+    return;
+  }
+  for (const s of host.services) {
+    const st = statusMap.get(s.id);
+    const state = st ? st.state : "unk";
+    const dot = el("div", {
+      class: "svc-dot " + pillCls(state),
+      "data-svc-id": s.id,
+      title: s.name + " (" + s.type + ") — " + occultState(state)
+    });
+    dot.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selectHost(host.id, s.id);
+    });
+    dot.addEventListener("mouseenter", (ev) => showSvcTip(ev, host, s, st));
+    dot.addEventListener("mouseleave", hideTip);
+    dot.addEventListener("mousemove", moveTip);
+    svcRoot.appendChild(dot);
+  }
+}
+
+function updateHostVisual(hostId) {
+  const card = cardEls.get(hostId);
+  if (!card) return;
+  const host = config.hosts.find(h => h.id === hostId);
+  if (!host) return;
+  applyCardState(card, host);
+  refreshCardContent(card, host);
+}
+
+/* ---------- drag and drop ---------- */
+
+let dragState = null;
+
+function startCardDrag(e, card, hostId) {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const rect = card.getBoundingClientRect();
+  dragState = {
+    card, hostId,
+    startX: e.clientX, startY: e.clientY,
+    origX: rect.left, origY: rect.top,
+    moved: false
+  };
+}
+
+window.addEventListener("mousemove", (e) => {
+  if (!dragState) return;
+  const dx = e.clientX - dragState.startX;
+  const dy = e.clientY - dragState.startY;
+  if (!dragState.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+  if (!dragState.moved) {
+    dragState.moved = true;
+    dragState.card.classList.add("dragging");
+  }
+  dragState.card.style.left = (dragState.origX + dx) + "px";
+  dragState.card.style.top  = (dragState.origY + dy) + "px";
+});
+
+window.addEventListener("mouseup", () => {
+  if (!dragState) return;
+  const ds = dragState;
+  dragState = null;
+  if (!ds.moved) {
+    // Header click without drag → open side panel.
+    ds.card.classList.remove("dragging");
+    selectHost(ds.hostId);
+    return;
+  }
+  ds.card.classList.remove("dragging");
+  config.positions ||= {};
+  config.positions[ds.hostId] = {
+    x: parseFloat(ds.card.style.left) || 0,
+    y: parseFloat(ds.card.style.top)  || 0
+  };
+  saveConfig();
+});
+
+/* ---------- relayout ---------- */
+
+function relayoutGrid() {
+  config.positions = {};
+  for (let i = 0; i < config.hosts.length; i++) {
+    const host = config.hosts[i];
+    const card = cardEls.get(host.id);
+    if (!card) continue;
+    const pos = autoGridPosition(i);
+    card.style.left = pos.x + "px";
+    card.style.top  = pos.y + "px";
+  }
+  saveConfig();
+  log("cards re-arranged in fresh grid", "info");
+}
+
+/* ---------- tooltip ---------- */
+
+const tip = $("#tip");
+function showSvcTip(ev, host, s, st) {
+  tip.innerHTML = "";
+  const state = st ? st.state : "unk";
+  tip.append(
+    el("div", { class: "ttl" }, host.name + " · " + s.name),
+    el("div", { class: "row" }, el("span", { class: "k" }, "Type"), el("span", {}, s.type.toUpperCase())),
+    el("div", { class: "row" }, el("span", { class: "k" }, "Target"), el("span", {}, s.target)),
+    el("div", { class: "row" }, el("span", { class: "k" }, "State"), (() => {
+      const e = el("span", {}, occultState(state));
+      e.style.color = statusColorVar(state);
+      return e;
+    })()),
+    el("div", { class: "row" }, el("span", { class: "k" }, "Latency"), el("span", {}, st ? fmtLatency(st.latency) : "—")),
+    el("div", { class: "row" }, el("span", { class: "k" }, "Detail"), el("span", {}, st ? st.detail : "—"))
+  );
+  tip.style.display = "block";
+  moveTip(ev);
+}
+function moveTip(ev) {
+  const x = ev.clientX + 14, y = ev.clientY + 12;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  const maxX = window.innerWidth - w - 10;
+  const maxY = window.innerHeight - h - 10;
+  tip.style.left = Math.min(x, maxX) + "px";
+  tip.style.top  = Math.min(y, maxY) + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+/* ---------- side panel ---------- */
+
+function selectHost(hostId, svcId = null) {
+  selectedHostId = hostId;
+  $("#sidepanel").classList.add("open");
+  renderSidepanel(svcId);
+}
+
+function renderSidepanel(highlightSvc = null) {
+  const panel = $("#side-content");
+  panel.innerHTML = "";
+  const host = config.hosts.find(h => h.id === selectedHostId);
+  if (!host) { $("#sidepanel").classList.remove("open"); return; }
+  const agg = aggregateHostState(host);
+
+  const head = el("div", { class: "section" },
+    el("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" } },
+      el("h3", { style: { margin: 0 } }, host.name),
+      el("button", { class: "btn ghost", style: { padding: "2px 8px", fontSize: "9px" },
+        onClick: () => $("#sidepanel").classList.remove("open") }, "Close")
+    ),
+    el("div", { class: "row" }, el("span", { class: "k" }, "Addr"), el("span", { class: "v" }, host.address || "—")),
+    el("div", { class: "row" }, el("span", { class: "k" }, "State"),
+      (() => { const e = el("span", { class: "v" }, occultState(agg.state)); e.style.color = statusColorVar(agg.state); return e; })()),
+    el("div", { class: "row" }, el("span", { class: "k" }, "Rites Hold"), el("span", { class: "v" }, agg.up + " / " + agg.total))
+  );
+  panel.append(head);
+
+  const svcSec = el("div", { class: "section" }, el("h3", {}, "Rites"));
+  if (!host.services.length) {
+    svcSec.append(el("div", { style: { color: "var(--ink-dim)", fontStyle: "italic", padding: "8px 0" } },
+      "No rites bound. Use INSCRIBE to add some."));
+  }
+  for (const s of host.services) {
+    const st = statusMap.get(s.id);
+    const state = st ? st.state : "unk";
+    const wrap = el("div", { style: {
+      padding: "8px 0",
+      borderBottom: "1px dashed var(--ink-faint)",
+      background: highlightSvc === s.id ? "rgba(255, 207, 63, 0.06)" : "transparent"
+    } },
+      el("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+        el("span", { style: { color: "var(--ink)" } }, s.name),
+        el("span", { class: "pill " + pillCls(state) }, occultState(state))
+      ),
+      el("div", { style: { color: "var(--ink-dim)", fontSize: "10px", marginTop: "2px", fontFamily: "var(--mono)" } },
+        s.type.toUpperCase() + " · " + s.target),
+      el("div", { style: { color: "var(--ink-dim)", fontSize: "10px", marginTop: "2px", fontFamily: "var(--mono)" } },
+        "lat " + (st ? fmtLatency(st.latency) : "—") + "  ·  " + (st ? st.detail : "no divination")),
+      el("div", { style: { marginTop: "6px" } },
+        el("button", {
+          class: "btn ghost",
+          style: { padding: "3px 8px", fontSize: "9px" },
+          onClick: async () => {
+            log(host.name + " / " + s.name + " — divining…", "dim");
+            statusMap.set(s.id, { state: "check", latency: null, ts: Date.now(), detail: "divining…" });
+            updateHostVisual(host.id);
+            renderSidepanel(s.id);
+            const r = await probeService(s, config.timeoutMs);
+            statusMap.set(s.id, { ...r, ts: Date.now() });
+            const tag = r.state === "ok" ? "ok" : r.state === "warn" ? "warn" : r.state === "bad" ? "bad" : "info";
+            log(host.name + " / " + s.name + " — " + occultState(r.state) + " (" + fmtLatency(r.latency) + ") " + r.detail, tag);
+            updateHostVisual(host.id);
+            renderSidepanel(s.id);
+            updateMeta();
+          }
+        }, "▸ Scry")
+      )
+    );
+    svcSec.append(wrap);
+  }
+  panel.append(svcSec);
+}
+
+/* ---------- modal ---------- */
+
+let draft = null;
+
+function openConfigModal() {
+  $("#cfg-interval").value = config.interval || 0;
+  $("#cfg-timeout").value  = config.timeoutMs || 5000;
+  $("#cfg-parallel").value = config.parallel  || 6;
+  draft = structuredClone(config);
+  renderHostsEditorPreserve();
+  $("#modal-bg").classList.add("open");
+}
+function closeConfigModal() { $("#modal-bg").classList.remove("open"); }
+
+function renderHostsEditorPreserve() {
+  const root = $("#hosts-editor");
+  root.innerHTML = "";
+  for (const h of draft.hosts) root.append(hostEditorBlock(h));
+}
+
+function hostEditorBlock(host) {
+  const block = el("div", { class: "host-block" });
+  const head = el("div", { class: "head-row" },
+    el("div", {},
+      el("label", {}, "Node Name"),
+      el("input", { type: "text", value: host.name || "",
+        onInput: (e) => host.name = e.target.value })
+    ),
+    el("div", {},
+      el("label", {}, "Address"),
+      el("input", { type: "text", value: host.address || "",
+        placeholder: "192.168.1.10",
+        onInput: (e) => host.address = e.target.value })
+    ),
+    el("button", {
+      class: "btn danger",
+      style: { padding: "4px 10px", fontSize: "10px" },
+      onClick: () => {
+        draft.hosts = draft.hosts.filter(h => h.id !== host.id);
+        if (draft.positions) delete draft.positions[host.id];
+        renderHostsEditorPreserve();
+      }
+    }, "✕ Node")
+  );
+  block.append(head);
+
+  const svcRoot = el("div", {});
+  for (const s of host.services) svcRoot.append(svcRow(host, s));
+  block.append(svcRoot);
+  block.append(
+    el("button", {
+      class: "btn add-svc",
+      onClick: () => {
+        const ns = {
+          id: cryptoRandomId(), name: "new rite", type: "http",
+          target: host.address ? "http://" + host.address + "/" : "http://"
+        };
+        host.services.push(ns);
+        svcRoot.append(svcRow(host, ns));
+      }
+    }, "+ Add Rite")
+  );
+  return block;
+}
+
+function svcRow(host, s) {
+  const row = el("div", { class: "svc-row" });
+  const nameI = el("input", { type: "text", value: s.name, placeholder: "rite name",
+    onInput: (e) => s.name = e.target.value });
+  const typeS = el("select", { onChange: (e) => { s.type = e.target.value; } });
+  for (const [v, label] of [["http","HTTP/S"], ["tcp","TCP (port)"], ["ws","WebSocket"], ["wss","WebSocket-TLS"]]) {
+    const o = el("option", { value: v }, label);
+    if (s.type === v) o.selected = true;
+    typeS.append(o);
+  }
+  const targetI = el("input", { type: "text", value: s.target, placeholder: "url or host:port",
+    onInput: (e) => s.target = e.target.value });
+  const x = el("button", { class: "x", title: "Remove rite",
+    onClick: () => {
+      host.services = host.services.filter(x => x.id !== s.id);
+      row.remove();
+    }
+  }, "✕");
+  row.append(nameI, typeS, targetI, x);
+  return row;
+}
+
+function saveAndApplyConfig() {
+  draft.interval  = clamp(parseInt($("#cfg-interval").value, 10) || 0, 0, 3600);
+  draft.timeoutMs = clamp(parseInt($("#cfg-timeout").value, 10) || 5000, 500, 30000);
+  draft.parallel  = clamp(parseInt($("#cfg-parallel").value, 10) || 6, 1, 32);
+  config = draft;
+  saveConfig();
+  closeConfigModal();
+  log("the grimoire is inscribed // " + config.hosts.length + " nodes, "
+      + config.hosts.reduce((n,h)=>n+h.services.length, 0) + " rites", "info");
+  const validIds = new Set();
+  for (const h of config.hosts) for (const s of h.services) validIds.add(s.id);
+  for (const k of [...statusMap.keys()]) if (!validIds.has(k)) statusMap.delete(k);
+  setupAutoRefresh();
+  render();
+  updateMeta();
+  renderSidepanel();
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* ---------- import/export ---------- */
+
+function openJsonModal(mode) {
+  $("#json-title").textContent = mode === "export" ? "Transcribe to Parchment" : "Inscribe from Parchment";
+  $("#json-area").value = mode === "export" ? JSON.stringify(config, null, 2) : "";
+  $("#json-area").readOnly = mode === "export";
+  $("#btn-json-apply").style.display = mode === "export" ? "none" : "inline-block";
+  $("#modal-bg-json").classList.add("open");
+}
+function closeJsonModal() { $("#modal-bg-json").classList.remove("open"); }
+
+/* ---------- auto-refresh ---------- */
+
+function setupAutoRefresh() {
+  if (intervalTimer) { clearInterval(intervalTimer); intervalTimer = null; }
+  if (config.interval > 0) {
+    intervalTimer = setInterval(() => { if (!scanInFlight) scanAll(); }, config.interval * 1000);
+    log("auto-divination every " + config.interval + "s", "dim");
+  }
+}
+
+/* ---------- animation loop ---------- */
+
+function tickScene(t) {
+  if (sigilRotEl) {
+    const ang = t * 0.000035 * 180 / Math.PI;
+    sigilRotEl.setAttribute("transform",
+      `translate(${window.innerWidth/2},${window.innerHeight/2}) rotate(${ang})`);
+  }
+}
+
+let lastFrame = 0;
+function loop(t) {
+  const dt = lastFrame ? (t - lastFrame) : 16;
+  if (t - lastFrame > 33) {
+    drawCanvas(t, dt);
+    lastFrame = t;
+  }
+  maybeSpawnEmber(t);
+  tickScene(t);
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener("resize", () => {
+  sizeCanvas();
+  buildDecor();
+});
+sizeCanvas();
+buildDecor();
+requestAnimationFrame(loop);
+
+/* ---------- wire up ---------- */
+
+$("#btn-scan").addEventListener("click", scanAll);
+$("#btn-config").addEventListener("click", openConfigModal);
+$("#btn-relayout").addEventListener("click", relayoutGrid);
+$("#btn-close-modal").addEventListener("click", closeConfigModal);
+$("#btn-cancel").addEventListener("click", closeConfigModal);
+$("#btn-save").addEventListener("click", saveAndApplyConfig);
+$("#btn-add-host").addEventListener("click", () => {
+  draft.hosts.push({ id: cryptoRandomId(), name: "new node", address: "", services: [] });
+  renderHostsEditorPreserve();
+});
+$("#btn-reset").addEventListener("click", () => {
+  if (!confirm("Reset the grimoire to its initial inscription? (clears card positions too)")) return;
+  draft = structuredClone(DEFAULT_CONFIG);
+  for (const h of draft.hosts) {
+    h.id = cryptoRandomId();
+    for (const s of h.services) s.id = cryptoRandomId();
+  }
+  renderHostsEditorPreserve();
+  $("#cfg-interval").value = draft.interval;
+  $("#cfg-timeout").value = draft.timeoutMs;
+  $("#cfg-parallel").value = draft.parallel;
+});
+$("#btn-clear-log").addEventListener("click", () => { $("#log").innerHTML = ""; });
+
+$("#btn-export").addEventListener("click", () => openJsonModal("export"));
+$("#btn-import").addEventListener("click", () => openJsonModal("import"));
+$("#btn-close-json").addEventListener("click", closeJsonModal);
+$("#btn-json-cancel").addEventListener("click", closeJsonModal);
+$("#btn-json-apply").addEventListener("click", () => {
+  try {
+    const parsed = JSON.parse($("#json-area").value);
+    if (!parsed || !Array.isArray(parsed.hosts)) throw new Error("missing hosts[] array");
+    for (const h of parsed.hosts) {
+      h.id ||= cryptoRandomId();
+      h.services ||= [];
+      for (const s of h.services) s.id ||= cryptoRandomId();
+    }
+    parsed.positions ||= {};
+    parsed.interval ??= 0;
+    parsed.timeoutMs ??= 5000;
+    parsed.parallel ??= 6;
+    draft = parsed;
+    renderHostsEditorPreserve();
+    $("#cfg-interval").value = draft.interval;
+    $("#cfg-timeout").value = draft.timeoutMs;
+    $("#cfg-parallel").value = draft.parallel;
+    closeJsonModal();
+    log("inscription transcribed // review and apply", "info");
+  } catch (e) { alert("Invalid JSON: " + e.message); }
+});
+
+$("#modal-bg").addEventListener("click", (e) => { if (e.target.id === "modal-bg") closeConfigModal(); });
+$("#modal-bg-json").addEventListener("click", (e) => { if (e.target.id === "modal-bg-json") closeJsonModal(); });
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if ($("#modal-bg-json").classList.contains("open")) closeJsonModal();
+    else if ($("#modal-bg").classList.contains("open")) closeConfigModal();
+    else if ($("#sidepanel").classList.contains("open")) $("#sidepanel").classList.remove("open");
+  }
+  if (e.key === " " && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    scanAll();
+  }
+});
+
+/* ---------- boot ---------- */
+
+log("GRIMORIUM awakens // " + new Date().toISOString().slice(0, 10), "info");
+log("press SCRY ALL (or spacebar) to divine the nodes' fates", "dim");
+log("drag cards by their top bar to arrange — positions persist", "dim");
+render();
+updateMeta();
+setupAutoRefresh();
+</script>
+</body>
+</html>
