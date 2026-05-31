@@ -700,6 +700,198 @@
   .bg-sigil-text { fill: var(--gold); font-family: var(--glyph); text-anchor: middle; dominant-baseline: central; opacity: 0.85; }
   .bg-grid { fill: none; stroke: var(--ink-faint); stroke-width: 0.5; opacity: 0.18; }
 
+  /* ---------- circular card variant (radial layouts) ---------- */
+  .card.circular {
+    width: 168px;
+    height: 168px;
+    border-radius: 50%;
+    padding: 0;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18) 0%, rgba(0,0,0,0) 50%),
+                linear-gradient(to bottom, rgba(26,14,7,0.9), rgba(12,7,3,0.9));
+    box-shadow:
+      0 0 0 1px currentColor inset,
+      0 6px 18px rgba(0,0,0,0.45);
+    display: flex; flex-direction: column;
+    align-items: stretch; justify-content: space-between;
+    overflow: hidden;
+    color: var(--gold);
+  }
+  .card.circular::before, .card.circular::after { display: none; }
+  .card.circular .card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: none;
+    padding: 18px 22px 4px;
+    gap: 4px;
+    text-align: center;
+  }
+  .card.circular .card-name {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+  .card.circular .card-runes {
+    position: absolute;
+    top: 8px; right: 14px;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .card.circular .card-pill {
+    margin: 2px auto 0;
+    font-size: 9px;
+    padding: 1px 8px;
+  }
+  .card.circular .card-body {
+    padding: 4px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
+  }
+  .card.circular .card-addr {
+    font-size: 9px;
+    text-align: center;
+    margin-bottom: 4px;
+    color: var(--ink-dim);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card.circular .link-row {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    max-width: 124px;
+    min-height: 12px;
+  }
+  .card.circular .link-step + .link-step::before {
+    width: 6px;
+  }
+
+  /* Radial "system" group element: outer ring + central hub glyph. */
+  .system {
+    position: absolute;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.04);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+    opacity: 0.7;
+  }
+  .system.untagged {
+    color: var(--ink-faint);
+    border-style: dashed;
+  }
+  .system-hub {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    background: var(--bg-0);
+    display: flex; align-items: center; justify-content: center;
+    color: inherit;
+    pointer-events: none;
+  }
+  .system-hub .g {
+    font-family: var(--glyph);
+    font-size: 24px;
+    color: currentColor;
+    text-shadow: 0 0 6px currentColor;
+  }
+  .system-label {
+    position: absolute;
+    left: 50%; top: -10px;
+    transform: translateX(-50%);
+    padding: 0 10px;
+    background: var(--bg-0);
+    font-family: var(--serif);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: currentColor;
+    white-space: nowrap;
+  }
+
+  /* ---------- Orrery theme overrides ---------- */
+  body[data-theme="orrery"] {
+    background: var(--bg-0);
+    color: var(--ink);
+  }
+  body[data-theme="orrery"]::before { display: none; }
+  body[data-theme="orrery"] .topbar {
+    background: linear-gradient(to bottom, rgba(244,247,251,0.96), rgba(244,247,251,0.6) 80%, transparent);
+    border-bottom: 1px solid var(--panel-edge);
+  }
+  body[data-theme="orrery"] .topbar .brand {
+    color: var(--gold);
+    text-shadow: none;
+    font-family: var(--mono);
+    letter-spacing: 0.24em;
+  }
+  body[data-theme="orrery"] .console {
+    background: linear-gradient(to top, rgba(244,247,251,0.96), rgba(244,247,251,0.6) 80%, transparent);
+    border-top: 1px solid var(--panel-edge);
+  }
+  body[data-theme="orrery"] .console .body { color: var(--ink); }
+  body[data-theme="orrery"] .console .ts { color: var(--ink-faint); }
+  body[data-theme="orrery"] .shelf {
+    background: linear-gradient(to right, rgba(244,247,251,0.96), rgba(244,247,251,0.6) 90%, transparent);
+    border-right: 1px solid var(--panel-edge);
+  }
+  body[data-theme="orrery"] .sidepanel {
+    background: var(--panel);
+    border-left: 1px solid var(--panel-edge);
+  }
+  body[data-theme="orrery"] .modal {
+    background: linear-gradient(to bottom, var(--bg-1), var(--bg-0));
+  }
+  body[data-theme="orrery"] .modal input,
+  body[data-theme="orrery"] .modal select,
+  body[data-theme="orrery"] .modal textarea {
+    background: var(--bg-0);
+    color: var(--ink);
+  }
+  body[data-theme="orrery"] .empty-hint h1 {
+    text-shadow: none;
+    font-family: var(--mono);
+    letter-spacing: 0.4em;
+  }
+  body[data-theme="orrery"] .card.circular {
+    background: var(--bg-0);
+    box-shadow:
+      0 0 0 1px currentColor inset,
+      0 4px 12px rgba(26, 60, 90, 0.12);
+    color: var(--gold);
+  }
+  body[data-theme="orrery"] .card.circular .card-name {
+    color: var(--ink);
+    font-family: var(--mono);
+  }
+  body[data-theme="orrery"] .card.circular .card-pill {
+    background: var(--bg-0);
+  }
+  body[data-theme="orrery"] .card.circular .card-addr {
+    color: var(--ink-dim);
+  }
+  body[data-theme="orrery"] .system {
+    background: rgba(26, 107, 199, 0.03);
+    box-shadow: 0 0 0 1px rgba(26, 107, 199, 0.06) inset;
+  }
+  body[data-theme="orrery"] .system-hub {
+    background: var(--bg-0);
+  }
+  body[data-theme="orrery"] .system-label {
+    background: var(--bg-0);
+    font-family: var(--mono);
+  }
+
 </style>
 </head>
 <body>
@@ -1383,6 +1575,263 @@
     return { groups: groupRects, cardPositions };
   }
 
+  // src/js/layout-radial.js
+  var RADIAL = Object.freeze({
+    cardD: 168,
+    // sphere diameter (also card bounding-box size)
+    ringGap: 26,
+    // gap between rings
+    slotGap: 12,
+    // angular gap between sibling slots on the same ring
+    hubR: 64,
+    // inner clear radius (center reserved for hub glyph)
+    sysGap: 36,
+    // gap between systems in grouped mode
+    padTop: 80,
+    padBottom: 200,
+    padLeft: 64,
+    padRight: 28,
+    sidepanelW: 380
+  });
+  function effectiveAvailWidthRadial(windowW, sidepanelOpen, layout = RADIAL) {
+    const effRight = sidepanelOpen ? layout.sidepanelW : layout.padRight;
+    return Math.max(layout.cardD * 2, windowW - layout.padLeft - effRight);
+  }
+
+  // src/js/orbital.js
+  var SYSTEM_BUFFER = 14;
+  function planRingAssignments(n, layout = RADIAL) {
+    const items = [];
+    const { cardD, ringGap, slotGap, hubR } = layout;
+    let placed = 0;
+    let ring = 1;
+    while (placed < n && ring <= 16) {
+      const r = hubR + cardD * (ring - 0.5) + ringGap * (ring - 1);
+      const circumference = 2 * Math.PI * r;
+      const slots = Math.max(1, Math.floor(circumference / (cardD + slotGap)));
+      const angStep = Math.PI * 2 / slots;
+      for (let s = 0; s < slots && placed < n; s++) {
+        items.push({
+          ringIdx: ring,
+          slots,
+          ringR: r,
+          baseTheta: s * angStep - Math.PI / 2
+        });
+        placed++;
+      }
+      ring++;
+    }
+    return items;
+  }
+  function outerRadiusForItems(items, layout = RADIAL) {
+    if (items.length === 0) return layout.hubR;
+    let maxR = layout.hubR;
+    for (const it of items) {
+      const eff = it.ringR + layout.cardD / 2;
+      if (eff > maxR) maxR = eff;
+    }
+    return maxR;
+  }
+  function createOrbitalState(opts) {
+    const layout = RADIAL;
+    const rand = opts.rand || Math.random;
+    const { chains, classifiers, groupByTag, bounds, prev } = opts;
+    const memberships = buildMembership(chains, classifiers, groupByTag);
+    const systems = [];
+    const chainEntries = /* @__PURE__ */ new Map();
+    for (const m of memberships) {
+      const items = planRingAssignments(m.chains.length, layout);
+      const sysR = Math.max(layout.hubR + layout.cardD / 2, outerRadiusForItems(items, layout));
+      const sysId = m.classifier ? m.classifier.id : "_untagged";
+      const cls = m.classifier;
+      const prevSys = prev?.systems.find((s) => s.id === sysId);
+      const sys = {
+        id: sysId,
+        classifier: cls,
+        cx: prevSys?.cx ?? 0,
+        cy: prevSys?.cy ?? 0,
+        vx: prevSys?.vx ?? 0,
+        vy: prevSys?.vy ?? 0,
+        r: sysR,
+        chainIds: m.chains.map((c) => c.id)
+      };
+      systems.push(sys);
+      const innermost = items[0]?.ringR ?? layout.hubR;
+      for (let i = 0; i < m.chains.length; i++) {
+        const it = items[i];
+        const omega = 1e-4 * (innermost / it.ringR);
+        const prevCh = prev?.chains.get(m.chains[i].id);
+        chainEntries.set(m.chains[i].id, {
+          sysId,
+          ringR: it.ringR,
+          theta: prevCh?.theta ?? it.baseTheta,
+          omega
+        });
+      }
+    }
+    initialPlace(systems, bounds, rand, groupByTag);
+    if (groupByTag) resolveSystemCollisions(systems, bounds, 6);
+    return { systems, chains: chainEntries };
+  }
+  function resolveSystemCollisions(systems, bounds, iterations = 3) {
+    for (let iter = 0; iter < iterations; iter++) {
+      let any = false;
+      for (let i = 0; i < systems.length; i++) {
+        for (let j = i + 1; j < systems.length; j++) {
+          const a = systems[i], b = systems[j];
+          const dx = b.cx - a.cx;
+          const dy = b.cy - a.cy;
+          let dist = Math.hypot(dx, dy);
+          const minDist = a.r + b.r + SYSTEM_BUFFER;
+          if (dist >= minDist) continue;
+          any = true;
+          let nx, ny;
+          if (dist < 1e-6) {
+            nx = 1;
+            ny = 0;
+            dist = 0;
+          } else {
+            nx = dx / dist;
+            ny = dy / dist;
+          }
+          const overlap = minDist - dist;
+          a.cx -= nx * overlap / 2;
+          a.cy -= ny * overlap / 2;
+          b.cx += nx * overlap / 2;
+          b.cy += ny * overlap / 2;
+          const relV = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+          if (relV > 0) {
+            a.vx -= relV * nx;
+            a.vy -= relV * ny;
+            b.vx += relV * nx;
+            b.vy += relV * ny;
+          }
+        }
+      }
+      if (!any) break;
+      for (const sys of systems) {
+        sys.cx = Math.min(bounds.maxX - sys.r, Math.max(bounds.minX + sys.r, sys.cx));
+        sys.cy = Math.min(bounds.maxY - sys.r, Math.max(bounds.minY + sys.r, sys.cy));
+      }
+    }
+  }
+  function buildMembership(chains, classifiers, groupByTag) {
+    if (!groupByTag) {
+      return [{ classifier: null, chains }];
+    }
+    const seen = /* @__PURE__ */ new Set();
+    const groups = [];
+    for (const cls of classifiers) {
+      const members = chains.filter((c) => c.classifierIds.length > 0 && c.classifierIds[0] === cls.id);
+      if (members.length) {
+        groups.push({ classifier: cls, chains: members });
+        for (const m of members) seen.add(m.id);
+      }
+    }
+    const orphans = chains.filter((c) => !seen.has(c.id));
+    if (orphans.length) groups.push({ classifier: null, chains: orphans });
+    return groups;
+  }
+  function initialPlace(systems, bounds, rand, groupByTag) {
+    const w = bounds.maxX - bounds.minX;
+    const h = bounds.maxY - bounds.minY;
+    if (!groupByTag) {
+      if (systems.length > 0) {
+        const s = systems[0];
+        s.cx = bounds.minX + w / 2;
+        s.cy = bounds.minY + h / 2;
+        s.vx = 0;
+        s.vy = 0;
+      }
+      return;
+    }
+    const SPEED = 0.012;
+    const cells = packToGrid(systems.map((s) => s.r), w, h);
+    for (let i = 0; i < systems.length; i++) {
+      const sys = systems[i];
+      if (sys.cx === 0 && sys.cy === 0) {
+        sys.cx = bounds.minX + cells[i].cx;
+        sys.cy = bounds.minY + cells[i].cy;
+      }
+      const minCX = bounds.minX + sys.r;
+      const maxCX = bounds.maxX - sys.r;
+      const minCY = bounds.minY + sys.r;
+      const maxCY = bounds.maxY - sys.r;
+      sys.cx = Math.min(maxCX, Math.max(minCX, sys.cx));
+      sys.cy = Math.min(maxCY, Math.max(minCY, sys.cy));
+      if (sys.vx === 0 && sys.vy === 0) {
+        const ang = rand() * Math.PI * 2;
+        sys.vx = Math.cos(ang) * SPEED;
+        sys.vy = Math.sin(ang) * SPEED;
+      }
+    }
+  }
+  function packToGrid(radii, w, h) {
+    const gap = RADIAL.sysGap;
+    const cells = new Array(radii.length);
+    let rowX = 0, rowY = 0, rowH = 0;
+    for (let i = 0; i < radii.length; i++) {
+      const d = radii[i] * 2 + gap;
+      if (rowX > 0 && rowX + d > w) {
+        rowX = 0;
+        rowY += rowH + gap;
+        rowH = 0;
+      }
+      cells[i] = { cx: rowX + radii[i], cy: rowY + radii[i] };
+      rowX += d;
+      if (d > rowH) rowH = d;
+    }
+    const usedH = rowY + rowH;
+    const yOffset = Math.max(0, (h - usedH) / 2);
+    for (const c of cells) c.cy += yOffset;
+    return cells;
+  }
+  function tickOrbitalState(state, dt, bounds, frozenIds) {
+    for (const sys of state.systems) {
+      if (sys.vx === 0 && sys.vy === 0) continue;
+      sys.cx += sys.vx * dt;
+      sys.cy += sys.vy * dt;
+      const minCX = bounds.minX + sys.r;
+      const maxCX = bounds.maxX - sys.r;
+      const minCY = bounds.minY + sys.r;
+      const maxCY = bounds.maxY - sys.r;
+      if (sys.cx < minCX) {
+        sys.cx = minCX;
+        sys.vx = Math.abs(sys.vx);
+      }
+      if (sys.cx > maxCX) {
+        sys.cx = maxCX;
+        sys.vx = -Math.abs(sys.vx);
+      }
+      if (sys.cy < minCY) {
+        sys.cy = minCY;
+        sys.vy = Math.abs(sys.vy);
+      }
+      if (sys.cy > maxCY) {
+        sys.cy = maxCY;
+        sys.vy = -Math.abs(sys.vy);
+      }
+    }
+    if (state.systems.length > 1) {
+      resolveSystemCollisions(state.systems, bounds, 3);
+    }
+    for (const [chainId, ch] of state.chains.entries()) {
+      if (frozenIds && frozenIds.has(chainId)) continue;
+      ch.theta += ch.omega * dt;
+      if (ch.theta > Math.PI * 2) ch.theta -= Math.PI * 2;
+    }
+  }
+  function chainCardPosition(state, chainId, cardD = RADIAL.cardD) {
+    const ch = state.chains.get(chainId);
+    if (!ch) return null;
+    const sys = state.systems.find((s) => s.id === ch.sysId);
+    if (!sys) return null;
+    return {
+      x: sys.cx + Math.cos(ch.theta) * ch.ringR - cardD / 2,
+      y: sys.cy + Math.sin(ch.theta) * ch.ringR - cardD / 2
+    };
+  }
+
   // src/js/render.js
   var SVG_NS = "http://www.w3.org/2000/svg";
   function el(tag, attrs = {}, ...kids) {
@@ -1408,8 +1857,9 @@
     return e;
   }
   function buildCard(chain, pos, ctx) {
+    const shape = ctx.cardShape === "circle" ? "circular" : "rect";
     const card = el("div", {
-      class: "card",
+      class: "card " + shape,
       "data-chain-id": chain.id,
       style: { left: pos.x + "px", top: pos.y + "px" }
     });
@@ -1479,7 +1929,7 @@
       }
     }
     body.appendChild(linkRow);
-    if (agg.firstBadIdx >= 0) {
+    if (agg.firstBadIdx >= 0 && ctx.cardShape !== "circle") {
       const broken = chain.links[agg.firstBadIdx];
       const st = statusMap2.get(broken.id);
       body.appendChild(
@@ -2279,10 +2729,325 @@
     }
   };
 
+  // src/js/themes/orrery.js
+  var orrery = {
+    id: "orrery",
+    name: "Orrery",
+    layoutMode: "radial",
+    cardShape: "circle",
+    labels: {
+      state: {
+        ok: "TRACKING",
+        warn: "DRIFT",
+        bad: "LOST",
+        check: "ACQUIRING",
+        skipped: "OCCLUDED",
+        unk: "DARK"
+      },
+      brand: {
+        name: "ORRERY",
+        sub: "// station tracking",
+        pageTitle: "ORRERY // station tracking"
+      },
+      actions: {
+        scryAll: "\u25B8 SWEEP",
+        scryAllRunning: "\u25B8 SWEEPING\u2026",
+        inscribe: "CONFIGURE",
+        group: "CLUSTERS",
+        reArrange: "REPHASE",
+        edit: "EDIT",
+        banish: "REMOVE",
+        saveApply: "COMMIT",
+        save: "COMMIT",
+        cancel: "CANCEL",
+        close: "CLOSE",
+        bind: "ASSIGN",
+        addChain: "+ ADD ORBIT",
+        addLink: "+ ADD STATION",
+        addSigil: "+ ADD CLUSTER",
+        rescry: "\u25B8 PING",
+        reset: "FACTORY RESET",
+        purge: "CLEAR",
+        exportLabel: "EXPORT",
+        importLabel: "IMPORT",
+        apply: "APPLY"
+      },
+      nouns: {
+        chain: "orbit",
+        chains: "orbits",
+        link: "station",
+        links: "stations",
+        sigil: "Cluster",
+        sigils: "Clusters",
+        log: "TRANSMISSION LOG",
+        addressLabel: "Address",
+        chainNameLabel: "Orbit ID",
+        haltLabel: "Halt on Fault",
+        siteSettings: "System Settings"
+      },
+      modalTitles: {
+        inscribe: "System Settings",
+        inscribeChain: "Configure Orbit",
+        transcribeOut: "Export Config",
+        transcribeIn: "Import Config",
+        transcribe: "Transfer",
+        sigilNew: "New Cluster",
+        sigilEdit: "Edit Cluster",
+        sigilDefault: "Cluster"
+      },
+      empty: {
+        noChainsHead: "no orbits established.",
+        pressHint: "press CONFIGURE to begin.",
+        noChainsForScry: "no orbits with stations \u2014 configure some",
+        noLinksOnCard: "no stations",
+        noLinksInPanel: "No stations configured. Use CONFIGURE to add some."
+      },
+      explainers: {
+        chainDescription: "An orbit is a probe sequence \u2014 DNS, ALB, Caddy, origin. When a station drops, downstream stations are bypassed and the orbit reports which one was lost.",
+        backupNote: "Assign hosts and the probes that watch them."
+      },
+      log: {
+        scanInFlight: "sweep already running",
+        scanStart: (n) => "sweep initiated // " + n + " orbits",
+        scanEnd: (n) => "sweep complete // " + n + " orbits",
+        inscribed: (chains, links) => "config saved // " + chains + " orbits, " + links + " stations",
+        chainInscribed: (name) => "orbit configured // " + name,
+        chainBanished: (name) => "orbit removed // " + name,
+        chainBound: (chain, sigil) => chain + " assigned to " + sigil,
+        sigilBound: (name) => "cluster created // " + name,
+        sigilUpdated: (name) => "cluster updated // " + name,
+        sigilBanished: (name) => "cluster removed // " + name,
+        groupingOn: "clustering enabled",
+        groupingOff: "free orbit",
+        reflowed: "clusters rephased",
+        arranged: "orbits rephased",
+        filterCleared: "filter cleared",
+        filterActive: (name) => "filter active // " + name,
+        transcribed: "config received // review and apply",
+        awakens: (date) => "ORRERY online // " + date,
+        scryHint: "press SWEEP (or spacebar) to probe all orbits",
+        dragHint: "drag orbits by their top arc \u2014 drop on a cluster to assign",
+        sigilHint: "drag a cluster onto an orbit to assign, click a cluster to filter",
+        groupHint: "toggle CLUSTERS to group orbits by their first cluster"
+      }
+    },
+    statusColorVar(state) {
+      switch (state) {
+        case "ok":
+          return "var(--verdant)";
+        case "warn":
+          return "var(--amber)";
+        case "bad":
+          return "var(--sienna)";
+        case "check":
+          return "var(--gold-bright)";
+        case "skipped":
+          return "var(--slate)";
+        default:
+          return "var(--vellum-dim)";
+      }
+    },
+    // Astronomical and orbital glyphs. Planets, lunar phases, comets, and
+    // ring/orbit markers. No mystical or industrial-warning symbols.
+    glyphs: [
+      "\u2609",
+      "\u263D",
+      "\u263F",
+      "\u2640",
+      "\u2641",
+      "\u2642",
+      "\u2643",
+      "\u2644",
+      "\u2645",
+      "\u2646",
+      "\u2647",
+      "\u2295",
+      "\u2299",
+      "\u25CB",
+      "\u25EF",
+      "\u25CC",
+      "\u25CD",
+      "\u25CE",
+      "\u25CF",
+      "\u25D0",
+      "\u25D1",
+      "\u25D2",
+      "\u25D3",
+      "\u2604",
+      "\u2726",
+      "\u2727",
+      "\u22C6",
+      "\u2217",
+      "\u2297",
+      "\u2298",
+      "\u2296",
+      "\u229D",
+      "\u21BA",
+      "\u21BB",
+      "\u21CC",
+      "\u21CB",
+      "\u21C4",
+      "\u21C5"
+    ],
+    // Blue-monochrome on pale paper. Brightness differentiates states.
+    // Amber and red are the single accent hues, reserved for warn and bad.
+    palette: {
+      "--bg-0": "#f4f7fb",
+      "--bg-1": "#e6edf6",
+      "--bg-2": "#d4e0ef",
+      "--vellum": "#1c3c5a",
+      "--vellum-dim": "#6a849e",
+      "--ink": "#1c3c5a",
+      "--ink-dim": "#5a7896",
+      "--ink-faint": "#a4b9d0",
+      "--gold": "#1a6bc7",
+      "--gold-dim": "#6a92c0",
+      "--gold-bright": "#00aaff",
+      "--amber": "#e08a1a",
+      "--brown": "#cbd8ea",
+      "--brown-deep": "#a4b9d0",
+      "--moss": "#1c8ad6",
+      "--verdant": "#1485e0",
+      "--verdant-bright": "#3ba8ff",
+      "--sienna": "#d23048",
+      "--rust": "#a4242e",
+      "--slate": "#8aa0bb",
+      "--slate-dim": "#c8d4e3",
+      "--panel": "rgba(244, 247, 251, 0.92)",
+      "--panel-edge": "rgba(26, 107, 199, 0.28)"
+    },
+    /**
+     * Orrery decoration: pale-paper background, faint cyan engineering grid,
+     * concentric range rings centered on the viewport, declination ticks,
+     * scattered astronomical glyphs at low opacity. No scanlines, no flicker,
+     * no rotating perimeter — a still planetarium chart.
+     */
+    createDecoration(canvas, svgRoot) {
+      const ctx = canvas.getContext("2d", { alpha: true });
+      let dpr = Math.max(1, window.devicePixelRatio || 1);
+      function sizeCanvas() {
+        dpr = Math.max(1, window.devicePixelRatio || 1);
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + "px";
+        canvas.style.height = window.innerHeight + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      function spawnEmber() {
+      }
+      function maybeSpawnEmber() {
+      }
+      function drawCanvas(t2, dt) {
+        const w = window.innerWidth, h = window.innerHeight;
+        ctx.clearRect(0, 0, w, h);
+        const wash = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.2, w / 2, h / 2, Math.max(w, h) * 0.7);
+        wash.addColorStop(0, "rgba(232, 240, 250, 0)");
+        wash.addColorStop(1, "rgba(180, 200, 224, 0.18)");
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, w, h);
+      }
+      function tickScene() {
+      }
+      function buildBackground() {
+        while (svgRoot.firstChild) svgRoot.removeChild(svgRoot.firstChild);
+        const w = window.innerWidth, h = window.innerHeight;
+        svgRoot.setAttribute("viewBox", `0 0 ${w} ${h}`);
+        svgRoot.setAttribute("width", w);
+        svgRoot.setAttribute("height", h);
+        const gridLayer = svg("g");
+        const cell = 50;
+        for (let x = 0; x <= w; x += cell) {
+          gridLayer.appendChild(svg("line", {
+            x1: x,
+            y1: 0,
+            x2: x,
+            y2: h,
+            class: "bg-grid"
+          }));
+        }
+        for (let y = 0; y <= h; y += cell) {
+          gridLayer.appendChild(svg("line", {
+            x1: 0,
+            y1: y,
+            x2: w,
+            y2: y,
+            class: "bg-grid"
+          }));
+        }
+        svgRoot.appendChild(gridLayer);
+        const glyphLayer = svg("g");
+        const glyphCount = Math.round(w * h / 8e4);
+        const glyphs = orrery.glyphs;
+        for (let i = 0; i < glyphCount; i++) {
+          const seedX = hash32("ogx" + i + "-" + w + "-" + h);
+          const seedY = hash32("ogy" + i + "-" + w + "-" + h);
+          const x = 40 + seedX % (w - 80);
+          const y = 40 + seedY % (h - 80);
+          const glyph = glyphs[seedX % glyphs.length];
+          const size = 14 + seedY % 14;
+          const opacity = 0.1 + seedY % 60 / 1400;
+          const tEl = svg("text", { x, y, class: "bg-rune", "font-size": size, opacity });
+          tEl.textContent = glyph;
+          glyphLayer.appendChild(tEl);
+        }
+        svgRoot.appendChild(glyphLayer);
+        const cx = w / 2;
+        const cy = RADIAL.padTop + Math.max(RADIAL.cardD * 2, h - RADIAL.padTop - RADIAL.padBottom) / 2;
+        const R = Math.min(w, h) * 0.42;
+        const stationary = svg("g", { transform: `translate(${cx},${cy})` });
+        for (const factor of [0.18, 0.36, 0.55, 0.74, 0.92]) {
+          stationary.appendChild(svg("circle", {
+            cx: 0,
+            cy: 0,
+            r: R * factor,
+            class: "bg-sigil-stroke",
+            "stroke-width": 0.5,
+            opacity: 0.32
+          }));
+        }
+        stationary.appendChild(svg("line", {
+          x1: -R,
+          y1: 0,
+          x2: R,
+          y2: 0,
+          class: "bg-sigil-stroke",
+          "stroke-width": 0.4,
+          opacity: 0.22
+        }));
+        stationary.appendChild(svg("line", {
+          x1: 0,
+          y1: -R,
+          x2: 0,
+          y2: R,
+          class: "bg-sigil-stroke",
+          "stroke-width": 0.4,
+          opacity: 0.22
+        }));
+        for (let i = 0; i < 24; i++) {
+          const ang = i / 24 * Math.PI * 2;
+          const r1 = R * 0.92;
+          const r2 = R * (i % 2 === 0 ? 0.97 : 0.95);
+          stationary.appendChild(svg("line", {
+            x1: r1 * Math.cos(ang),
+            y1: r1 * Math.sin(ang),
+            x2: r2 * Math.cos(ang),
+            y2: r2 * Math.sin(ang),
+            class: "bg-sigil-stroke",
+            "stroke-width": 0.5,
+            opacity: 0.45
+          }));
+        }
+        svgRoot.appendChild(stationary);
+      }
+      return { sizeCanvas, spawnEmber, drawCanvas, maybeSpawnEmber, buildBackground, tickScene };
+    }
+  };
+
   // src/js/theme.js
   var THEMES = Object.freeze({
     grimorium,
-    cassette
+    cassette,
+    orrery
   });
   var activeTheme = grimorium;
   function setActiveTheme(theme) {
@@ -2299,6 +3064,7 @@
       prev[name] = root.style.getPropertyValue(name);
       root.style.setProperty(name, value);
     }
+    if (doc.body) doc.body.dataset.theme = theme.id;
     setActiveTheme(theme);
     return prev;
   }
@@ -2423,10 +3189,17 @@
     $("#empty-hint").style.display = chainCount === 0 ? "block" : "none";
   }
   var decoration = activeTheme.createDecoration($("#parchment"), $("#background-decor"));
+  function isRadial() {
+    return activeTheme.layoutMode === "radial";
+  }
   function currentAvailWidth() {
-    return effectiveAvailWidth(window.innerWidth, $("#sidepanel").classList.contains("open"));
+    const sidepanelOpen = $("#sidepanel").classList.contains("open");
+    return isRadial() ? effectiveAvailWidthRadial(window.innerWidth, sidepanelOpen) : effectiveAvailWidth(window.innerWidth, sidepanelOpen);
   }
   function getCardPosition(chain, index) {
+    if (isRadial()) {
+      return { x: 0, y: 0 };
+    }
     const saved = (config.positions || {})[chain.id];
     if (saved && typeof saved.x === "number" && typeof saved.y === "number") return saved;
     return autoGridPosition(index, currentAvailWidth());
@@ -2444,6 +3217,11 @@
     applyFilter();
   }
   function applyLayout() {
+    if (isRadial()) {
+      if (config.groupByTag) layoutGroupedRadial();
+      else layoutFlatRadial();
+      return;
+    }
     if (config.groupByTag) layoutGrouped();
     else layoutFlat();
   }
@@ -2503,6 +3281,85 @@
       card.style.top = pos.y + "px";
     }
   }
+  var orbitalState = null;
+  var systemEls = /* @__PURE__ */ new Map();
+  function currentOrbitalBounds() {
+    const sidepanelOpen = $("#sidepanel").classList.contains("open");
+    const rightEdge = window.innerWidth - (sidepanelOpen ? RADIAL.sidepanelW : RADIAL.padRight);
+    return {
+      minX: RADIAL.padLeft,
+      minY: RADIAL.padTop,
+      maxX: rightEdge,
+      maxY: window.innerHeight - RADIAL.padBottom
+    };
+  }
+  function rebuildOrbital() {
+    orbitalState = createOrbitalState({
+      chains: config.chains,
+      classifiers: config.classifiers,
+      groupByTag: config.groupByTag,
+      bounds: currentOrbitalBounds(),
+      prev: orbitalState
+    });
+    rebuildSystemDom();
+    applyOrbitalDom();
+  }
+  function rebuildSystemDom() {
+    const groupsRoot = $("#groups");
+    groupsRoot.innerHTML = "";
+    systemEls.clear();
+    if (!orbitalState) return;
+    if (!config.groupByTag) return;
+    for (const sys of orbitalState.systems) {
+      const cls = sys.classifier;
+      const ring = el("div", {
+        class: "system" + (cls ? "" : " untagged"),
+        style: {
+          width: sys.r * 2 + "px",
+          height: sys.r * 2 + "px",
+          color: cls ? cls.tint : "var(--ink-faint)"
+        }
+      });
+      let hub = null;
+      if (cls) {
+        hub = el(
+          "div",
+          { class: "system-hub", title: cls.name },
+          el("span", { class: "g" }, cls.glyph)
+        );
+        ring.appendChild(hub);
+      }
+      const label = el("div", { class: "system-label" }, cls ? cls.name : "untagged");
+      ring.appendChild(label);
+      groupsRoot.appendChild(ring);
+      systemEls.set(sys.id, { ring, hub, label });
+    }
+  }
+  function applyOrbitalDom() {
+    if (!orbitalState) return;
+    for (const sys of orbitalState.systems) {
+      const els = systemEls.get(sys.id);
+      if (els) {
+        els.ring.style.left = sys.cx - sys.r + "px";
+        els.ring.style.top = sys.cy - sys.r + "px";
+      }
+    }
+    for (const [chainId, ch] of orbitalState.chains.entries()) {
+      if (dragState && dragState.chainId === chainId) continue;
+      const pos = chainCardPosition(orbitalState, chainId);
+      if (!pos) continue;
+      const card = cardEls.get(chainId);
+      if (!card) continue;
+      card.style.left = pos.x + "px";
+      card.style.top = pos.y + "px";
+    }
+  }
+  function layoutFlatRadial() {
+    rebuildOrbital();
+  }
+  function layoutGroupedRadial() {
+    rebuildOrbital();
+  }
   var renderCtx = {
     get statusMap() {
       return statusMap;
@@ -2511,6 +3368,9 @@
       return config.classifiers;
     },
     stateLabel,
+    get cardShape() {
+      return activeTheme.cardShape || "rect";
+    },
     get labels() {
       return {
         noLinksOnCard: t("empty.noLinksOnCard")
@@ -2536,9 +3396,10 @@
     if (!card) return;
     const chain = config.chains.find((c) => c.id === chainId);
     if (!chain) return;
-    const oldH = config.groupByTag ? card.offsetHeight : 0;
+    const needsRepack = config.groupByTag && !isRadial();
+    const oldH = needsRepack ? card.offsetHeight : 0;
     refreshCard(card, chain, renderCtx);
-    if (config.groupByTag && card.offsetHeight !== oldH) applyLayout();
+    if (needsRepack && card.offsetHeight !== oldH) applyLayout();
   }
   var dragState = null;
   var sigilDrag = null;
@@ -2643,7 +3504,7 @@
         if (activeFilter) applyFilter();
         return;
       }
-      if (config.groupByTag) {
+      if (config.groupByTag || isRadial()) {
         applyLayout();
         return;
       }
@@ -2725,6 +3586,11 @@
     }
   }
   function relayoutGrid() {
+    if (isRadial()) {
+      applyLayout();
+      log(t("log.arranged"), "info");
+      return;
+    }
     if (config.groupByTag) {
       applyLayout();
       log(t("log.reflowed"), "info");
@@ -2776,11 +3642,11 @@
     const wasOpen = $("#sidepanel").classList.contains("open");
     $("#sidepanel").classList.add("open");
     renderSidepanel(linkId);
-    if (!wasOpen && config.groupByTag) applyLayout();
+    if (!wasOpen && (config.groupByTag || isRadial())) applyLayout();
   }
   function closeSidepanel() {
     $("#sidepanel").classList.remove("open");
-    if (config.groupByTag) applyLayout();
+    if (config.groupByTag || isRadial()) applyLayout();
   }
   function renderSidepanel(highlightLink = null) {
     const panel = $("#side-content");
@@ -3306,6 +4172,11 @@
     const dt = lastFrame ? t2 - lastFrame : 16;
     if (t2 - lastFrame > 33) {
       decoration.drawCanvas(t2, dt);
+      if (isRadial() && orbitalState) {
+        const frozen = dragState && dragState.chainId ? /* @__PURE__ */ new Set([dragState.chainId]) : null;
+        tickOrbitalState(orbitalState, dt, currentOrbitalBounds(), frozen);
+        applyOrbitalDom();
+      }
       lastFrame = t2;
     }
     decoration.maybeSpawnEmber(t2);
@@ -3315,7 +4186,8 @@
   window.addEventListener("resize", () => {
     decoration.sizeCanvas();
     decoration.buildBackground();
-    if (config.groupByTag) applyLayout();
+    if (isRadial()) rebuildOrbital();
+    else if (config.groupByTag) applyLayout();
   });
   decoration.sizeCanvas();
   decoration.buildBackground();

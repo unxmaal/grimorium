@@ -49,8 +49,9 @@ export function svg(tag, attrs = {}) {
  * @param {object} ctx render context (see refreshCard)
  */
 export function buildCard(chain, pos, ctx) {
+  const shape = ctx.cardShape === "circle" ? "circular" : "rect";
   const card = el("div", {
-    class: "card",
+    class: "card " + shape,
     "data-chain-id": chain.id,
     style: { left: pos.x + "px", top: pos.y + "px" }
   });
@@ -144,7 +145,10 @@ export function refreshCard(card, chain, ctx) {
   }
   body.appendChild(linkRow);
 
-  if (agg.firstBadIdx >= 0) {
+  // Circular cards don't show an inline detail line — the shape doesn't
+  // accommodate growing text. Broken-link info still surfaces via the
+  // pulsing red link dot, the card's red border, and the side panel.
+  if (agg.firstBadIdx >= 0 && ctx.cardShape !== "circle") {
     const broken = chain.links[agg.firstBadIdx];
     const st = statusMap.get(broken.id);
     body.appendChild(

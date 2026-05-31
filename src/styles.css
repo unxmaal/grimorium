@@ -692,3 +692,195 @@
   .bg-sigil-stroke { fill: none; stroke: var(--gold); stroke-width: 1; }
   .bg-sigil-text { fill: var(--gold); font-family: var(--glyph); text-anchor: middle; dominant-baseline: central; opacity: 0.85; }
   .bg-grid { fill: none; stroke: var(--ink-faint); stroke-width: 0.5; opacity: 0.18; }
+
+  /* ---------- circular card variant (radial layouts) ---------- */
+  .card.circular {
+    width: 168px;
+    height: 168px;
+    border-radius: 50%;
+    padding: 0;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18) 0%, rgba(0,0,0,0) 50%),
+                linear-gradient(to bottom, rgba(26,14,7,0.9), rgba(12,7,3,0.9));
+    box-shadow:
+      0 0 0 1px currentColor inset,
+      0 6px 18px rgba(0,0,0,0.45);
+    display: flex; flex-direction: column;
+    align-items: stretch; justify-content: space-between;
+    overflow: hidden;
+    color: var(--gold);
+  }
+  .card.circular::before, .card.circular::after { display: none; }
+  .card.circular .card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: none;
+    padding: 18px 22px 4px;
+    gap: 4px;
+    text-align: center;
+  }
+  .card.circular .card-name {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+  .card.circular .card-runes {
+    position: absolute;
+    top: 8px; right: 14px;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .card.circular .card-pill {
+    margin: 2px auto 0;
+    font-size: 9px;
+    padding: 1px 8px;
+  }
+  .card.circular .card-body {
+    padding: 4px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
+  }
+  .card.circular .card-addr {
+    font-size: 9px;
+    text-align: center;
+    margin-bottom: 4px;
+    color: var(--ink-dim);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card.circular .link-row {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    max-width: 124px;
+    min-height: 12px;
+  }
+  .card.circular .link-step + .link-step::before {
+    width: 6px;
+  }
+
+  /* Radial "system" group element: outer ring + central hub glyph. */
+  .system {
+    position: absolute;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.04);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+    opacity: 0.7;
+  }
+  .system.untagged {
+    color: var(--ink-faint);
+    border-style: dashed;
+  }
+  .system-hub {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    background: var(--bg-0);
+    display: flex; align-items: center; justify-content: center;
+    color: inherit;
+    pointer-events: none;
+  }
+  .system-hub .g {
+    font-family: var(--glyph);
+    font-size: 24px;
+    color: currentColor;
+    text-shadow: 0 0 6px currentColor;
+  }
+  .system-label {
+    position: absolute;
+    left: 50%; top: -10px;
+    transform: translateX(-50%);
+    padding: 0 10px;
+    background: var(--bg-0);
+    font-family: var(--serif);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: currentColor;
+    white-space: nowrap;
+  }
+
+  /* ---------- Orrery theme overrides ---------- */
+  body[data-theme="orrery"] {
+    background: var(--bg-0);
+    color: var(--ink);
+  }
+  body[data-theme="orrery"]::before { display: none; }
+  body[data-theme="orrery"] .topbar {
+    background: linear-gradient(to bottom, rgba(244,247,251,0.96), rgba(244,247,251,0.6) 80%, transparent);
+    border-bottom: 1px solid var(--panel-edge);
+  }
+  body[data-theme="orrery"] .topbar .brand {
+    color: var(--gold);
+    text-shadow: none;
+    font-family: var(--mono);
+    letter-spacing: 0.24em;
+  }
+  body[data-theme="orrery"] .console {
+    background: linear-gradient(to top, rgba(244,247,251,0.96), rgba(244,247,251,0.6) 80%, transparent);
+    border-top: 1px solid var(--panel-edge);
+  }
+  body[data-theme="orrery"] .console .body { color: var(--ink); }
+  body[data-theme="orrery"] .console .ts { color: var(--ink-faint); }
+  body[data-theme="orrery"] .shelf {
+    background: linear-gradient(to right, rgba(244,247,251,0.96), rgba(244,247,251,0.6) 90%, transparent);
+    border-right: 1px solid var(--panel-edge);
+  }
+  body[data-theme="orrery"] .sidepanel {
+    background: var(--panel);
+    border-left: 1px solid var(--panel-edge);
+  }
+  body[data-theme="orrery"] .modal {
+    background: linear-gradient(to bottom, var(--bg-1), var(--bg-0));
+  }
+  body[data-theme="orrery"] .modal input,
+  body[data-theme="orrery"] .modal select,
+  body[data-theme="orrery"] .modal textarea {
+    background: var(--bg-0);
+    color: var(--ink);
+  }
+  body[data-theme="orrery"] .empty-hint h1 {
+    text-shadow: none;
+    font-family: var(--mono);
+    letter-spacing: 0.4em;
+  }
+  body[data-theme="orrery"] .card.circular {
+    background: var(--bg-0);
+    box-shadow:
+      0 0 0 1px currentColor inset,
+      0 4px 12px rgba(26, 60, 90, 0.12);
+    color: var(--gold);
+  }
+  body[data-theme="orrery"] .card.circular .card-name {
+    color: var(--ink);
+    font-family: var(--mono);
+  }
+  body[data-theme="orrery"] .card.circular .card-pill {
+    background: var(--bg-0);
+  }
+  body[data-theme="orrery"] .card.circular .card-addr {
+    color: var(--ink-dim);
+  }
+  body[data-theme="orrery"] .system {
+    background: rgba(26, 107, 199, 0.03);
+    box-shadow: 0 0 0 1px rgba(26, 107, 199, 0.06) inset;
+  }
+  body[data-theme="orrery"] .system-hub {
+    background: var(--bg-0);
+  }
+  body[data-theme="orrery"] .system-label {
+    background: var(--bg-0);
+    font-family: var(--mono);
+  }

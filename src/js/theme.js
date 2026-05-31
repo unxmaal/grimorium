@@ -14,10 +14,12 @@
 
 import { grimorium } from "./themes/grimorium.js";
 import { cassette } from "./themes/cassette.js";
+import { orrery } from "./themes/orrery.js";
 
 export const THEMES = Object.freeze({
   grimorium,
-  cassette
+  cassette,
+  orrery
 });
 
 export let activeTheme = grimorium;
@@ -42,6 +44,7 @@ export function applyTheme(theme, doc = globalThis.document) {
     prev[name] = root.style.getPropertyValue(name);
     root.style.setProperty(name, value);
   }
+  if (doc.body) doc.body.dataset.theme = theme.id;
   setActiveTheme(theme);
   return prev;
 }

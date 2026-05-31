@@ -27,6 +27,17 @@ import {
   autoGridPosition,
   computeGroupedLayout
 } from "./layout.js";
+import {
+  RADIAL,
+  effectiveAvailWidthRadial,
+  computeRadialLayout,
+  computeRadialGroupedLayout
+} from "./layout-radial.js";
+import {
+  createOrbitalState,
+  tickOrbitalState,
+  chainCardPosition
+} from "./orbital.js";
 import { el, svg, buildCard, refreshCard } from "./render.js";
 import { DRAG_THRESHOLD, dropTargetAt } from "./drag.js";
 import { activeTheme, stateLabel, themeById, applyTheme, applyLabels, t, THEMES } from "./theme.js";
@@ -149,11 +160,27 @@ const decoration = activeTheme.createDecoration($("#parchment"), $("#background-
 
 /* ---------- card layout + rendering ---------- */
 
+function isRadial() { return activeTheme.layoutMode === "radial"; }
+
 function currentAvailWidth() {
-  return effectiveAvailWidth(window.innerWidth, $("#sidepanel").classList.contains("open"));
+  const sidepanelOpen = $("#sidepanel").classList.contains("open");
+  return isRadial()
+    ? effectiveAvailWidthRadial(window.innerWidth, sidepanelOpen)
+    : effectiveAvailWidth(window.innerWidth, sidepanelOpen);
+}
+
+function currentAvailHeight() {
+  // Reserve top bar + console heights so the hub center isn't behind UI.
+  return Math.max(RADIAL.cardD * 2, window.innerHeight - RADIAL.padTop - RADIAL.padBottom);
 }
 
 function getCardPosition(chain, index) {
+  if (isRadial()) {
+    // Radial flat layout positions all cards relative to a hub. Saved
+    // free-positions are honored only in grid mode; radial recomputes
+    // every render so geometry stays clean.
+    return { x: 0, y: 0 };
+  }
   const saved = (config.positions || {})[chain.id];
   if (saved && typeof saved.x === "number" && typeof saved.y === "number") return saved;
   return autoGridPosition(index, currentAvailWidth());
@@ -173,6 +200,11 @@ function render() {
 }
 
 function applyLayout() {
+  if (isRadial()) {
+    if (config.groupByTag) layoutGroupedRadial();
+    else layoutFlatRadial();
+    return;
+  }
   if (config.groupByTag) layoutGrouped();
   else layoutFlat();
 }
@@ -232,12 +264,99 @@ function layoutGrouped() {
   }
 }
 
+/* ---------- orbital (radial mode) ---------- */
+
+let orbitalState = null;
+let systemEls = new Map(); // sysId -> { ring, hub, label }
+
+function currentOrbitalBounds() {
+  const sidepanelOpen = $("#sidepanel").classList.contains("open");
+  const rightEdge = window.innerWidth - (sidepanelOpen ? RADIAL.sidepanelW : RADIAL.padRight);
+  return {
+    minX: RADIAL.padLeft,
+    minY: RADIAL.padTop,
+    maxX: rightEdge,
+    maxY: window.innerHeight - RADIAL.padBottom
+  };
+}
+
+function rebuildOrbital() {
+  orbitalState = createOrbitalState({
+    chains: config.chains,
+    classifiers: config.classifiers,
+    groupByTag: config.groupByTag,
+    bounds: currentOrbitalBounds(),
+    prev: orbitalState
+  });
+  rebuildSystemDom();
+  applyOrbitalDom();
+}
+
+function rebuildSystemDom() {
+  const groupsRoot = $("#groups");
+  groupsRoot.innerHTML = "";
+  systemEls.clear();
+  if (!orbitalState) return;
+  // Flat mode: hide the system ring entirely; the background reticle does that job.
+  if (!config.groupByTag) return;
+  for (const sys of orbitalState.systems) {
+    const cls = sys.classifier;
+    const ring = el("div", {
+      class: "system" + (cls ? "" : " untagged"),
+      style: {
+        width: (sys.r * 2) + "px",
+        height: (sys.r * 2) + "px",
+        color: cls ? cls.tint : "var(--ink-faint)"
+      }
+    });
+    let hub = null;
+    if (cls) {
+      hub = el("div", { class: "system-hub", title: cls.name },
+        el("span", { class: "g" }, cls.glyph));
+      ring.appendChild(hub);
+    }
+    const label = el("div", { class: "system-label" }, cls ? cls.name : "untagged");
+    ring.appendChild(label);
+    groupsRoot.appendChild(ring);
+    systemEls.set(sys.id, { ring, hub, label });
+  }
+}
+
+function applyOrbitalDom() {
+  if (!orbitalState) return;
+  for (const sys of orbitalState.systems) {
+    const els = systemEls.get(sys.id);
+    if (els) {
+      els.ring.style.left = (sys.cx - sys.r) + "px";
+      els.ring.style.top  = (sys.cy - sys.r) + "px";
+    }
+  }
+  for (const [chainId, ch] of orbitalState.chains.entries()) {
+    if (dragState && dragState.chainId === chainId) continue;
+    const pos = chainCardPosition(orbitalState, chainId);
+    if (!pos) continue;
+    const card = cardEls.get(chainId);
+    if (!card) continue;
+    card.style.left = pos.x + "px";
+    card.style.top  = pos.y + "px";
+  }
+}
+
+function layoutFlatRadial() {
+  rebuildOrbital();
+}
+
+function layoutGroupedRadial() {
+  rebuildOrbital();
+}
+
 // Render context: passes refs to live state + handlers into render module.
 // Arrays/Maps are passed by reference so the renderer sees mutations as they happen.
 const renderCtx = {
   get statusMap() { return statusMap; },
   get classifiers() { return config.classifiers; },
   stateLabel: stateLabel,
+  get cardShape() { return activeTheme.cardShape || "rect"; },
   get labels() {
     return {
       noLinksOnCard: t("empty.noLinksOnCard")
@@ -264,9 +383,12 @@ function updateChainVisual(chainId) {
   if (!card) return;
   const chain = config.chains.find(c => c.id === chainId);
   if (!chain) return;
-  const oldH = config.groupByTag ? card.offsetHeight : 0;
+  // Grid grouped mode needs to re-pack rows when a card grows for the bad-
+  // link detail. Radial cards are fixed-diameter so this dance is skipped.
+  const needsRepack = config.groupByTag && !isRadial();
+  const oldH = needsRepack ? card.offsetHeight : 0;
   refreshCard(card, chain, renderCtx);
-  if (config.groupByTag && card.offsetHeight !== oldH) applyLayout();
+  if (needsRepack && card.offsetHeight !== oldH) applyLayout();
 }
 
 /* ---------- drag and drop ---------- */
@@ -381,8 +503,8 @@ window.addEventListener("mouseup", (e) => {
       return;
     }
 
-    // In group mode, free-positioning is disabled — snap back.
-    if (config.groupByTag) {
+    // Group mode and radial mode disable free positioning — snap back.
+    if (config.groupByTag || isRadial()) {
       applyLayout();
       return;
     }
@@ -475,6 +597,11 @@ function applyFilter() {
 /* ---------- relayout ---------- */
 
 function relayoutGrid() {
+  if (isRadial()) {
+    applyLayout();
+    log(t("log.arranged"), "info");
+    return;
+  }
   if (config.groupByTag) {
     applyLayout();
     log(t("log.reflowed"), "info");
@@ -530,12 +657,12 @@ function selectChain(chainId, linkId = null) {
   const wasOpen = $("#sidepanel").classList.contains("open");
   $("#sidepanel").classList.add("open");
   renderSidepanel(linkId);
-  if (!wasOpen && config.groupByTag) applyLayout();
+  if (!wasOpen && (config.groupByTag || isRadial())) applyLayout();
 }
 
 function closeSidepanel() {
   $("#sidepanel").classList.remove("open");
-  if (config.groupByTag) applyLayout();
+  if (config.groupByTag || isRadial()) applyLayout();
 }
 
 function renderSidepanel(highlightLink = null) {
@@ -1030,6 +1157,11 @@ function loop(t) {
   const dt = lastFrame ? (t - lastFrame) : 16;
   if (t - lastFrame > 33) {
     decoration.drawCanvas(t, dt);
+    if (isRadial() && orbitalState) {
+      const frozen = dragState && dragState.chainId ? new Set([dragState.chainId]) : null;
+      tickOrbitalState(orbitalState, dt, currentOrbitalBounds(), frozen);
+      applyOrbitalDom();
+    }
     lastFrame = t;
   }
   decoration.maybeSpawnEmber(t);
@@ -1040,7 +1172,8 @@ function loop(t) {
 window.addEventListener("resize", () => {
   decoration.sizeCanvas();
   decoration.buildBackground();
-  if (config.groupByTag) applyLayout();
+  if (isRadial()) rebuildOrbital();
+  else if (config.groupByTag) applyLayout();
 });
 decoration.sizeCanvas();
 decoration.buildBackground();
