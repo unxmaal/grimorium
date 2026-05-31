@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GRIMORIUM // internal divination</title>
+<title>ORRERY // station tracking</title>
 <style>
   :root {
     --bg-0: #0c0703;
@@ -1144,7 +1144,7 @@
       classifiers: [],
       positions: {},
       groupByTag: false,
-      themeId: "grimorium",
+      themeId: "orrery",
       timeoutMs: 5e3,
       parallel: 6
     };
@@ -1154,7 +1154,7 @@
     c.classifiers ||= [];
     c.positions ||= {};
     c.groupByTag ??= false;
-    c.themeId ??= "grimorium";
+    c.themeId ??= "orrery";
     c.timeoutMs ??= 5e3;
     c.parallel ??= 6;
     for (const ch of c.chains) {
@@ -3023,12 +3023,12 @@
     cassette,
     orrery
   });
-  var activeTheme = grimorium;
+  var activeTheme = orrery;
   function setActiveTheme(theme) {
     activeTheme = theme;
   }
   function themeById(id) {
-    return THEMES[id] ?? grimorium;
+    return THEMES[id] ?? orrery;
   }
   function applyTheme(theme, doc = globalThis.document) {
     if (!theme || !theme.palette || !doc?.documentElement) return {};
@@ -3077,7 +3077,7 @@
   {
     const params = new URLSearchParams(globalThis.location?.search || "");
     const urlTheme = params.get("theme");
-    const pickedId = urlTheme || config.themeId || "grimorium";
+    const pickedId = urlTheme || config.themeId || "orrery";
     applyTheme(themeById(pickedId));
     applyLabels();
     if (urlTheme) config.themeId = urlTheme;
@@ -3788,7 +3788,7 @@
       const o = document.createElement("option");
       o.value = t2.id;
       o.textContent = t2.name;
-      if (t2.id === (config.themeId || "grimorium")) o.selected = true;
+      if (t2.id === (config.themeId || "orrery")) o.selected = true;
       themeSel.append(o);
     }
     draft = structuredClone(config);
@@ -4003,8 +4003,8 @@
   function saveAndApplyConfig() {
     draft.timeoutMs = clamp(parseInt($("#cfg-timeout").value, 10) || 5e3, 500, 3e4);
     draft.parallel = clamp(parseInt($("#cfg-parallel").value, 10) || 6, 1, 32);
-    const newThemeId = $("#cfg-theme").value || "grimorium";
-    const themeChanged = newThemeId !== (config.themeId || "grimorium");
+    const newThemeId = $("#cfg-theme").value || "orrery";
+    const themeChanged = newThemeId !== (config.themeId || "orrery");
     draft.themeId = newThemeId;
     config = draft;
     saveConfig(config);

@@ -57,7 +57,7 @@ let config = loadConfig();
 {
   const params = new URLSearchParams(globalThis.location?.search || "");
   const urlTheme = params.get("theme");
-  const pickedId = urlTheme || config.themeId || "grimorium";
+  const pickedId = urlTheme || config.themeId || "orrery";
   applyTheme(themeById(pickedId));
   applyLabels();
   if (urlTheme) config.themeId = urlTheme;
@@ -805,7 +805,7 @@ function openConfigModal() {
     const o = document.createElement("option");
     o.value = t.id;
     o.textContent = t.name;
-    if (t.id === (config.themeId || "grimorium")) o.selected = true;
+    if (t.id === (config.themeId || "orrery")) o.selected = true;
     themeSel.append(o);
   }
   draft = structuredClone(config);
@@ -1009,8 +1009,8 @@ function buildExpectEditor(link) {
 function saveAndApplyConfig() {
   draft.timeoutMs = clamp(parseInt($("#cfg-timeout").value, 10) || 5000, 500, 30000);
   draft.parallel  = clamp(parseInt($("#cfg-parallel").value, 10) || 6, 1, 32);
-  const newThemeId = $("#cfg-theme").value || "grimorium";
-  const themeChanged = newThemeId !== (config.themeId || "grimorium");
+  const newThemeId = $("#cfg-theme").value || "orrery";
+  const themeChanged = newThemeId !== (config.themeId || "orrery");
   draft.themeId = newThemeId;
   config = draft;
   saveConfig(config);

@@ -44,7 +44,7 @@ export function defaultConfig() {
     classifiers: [],
     positions: {},
     groupByTag: false,
-    themeId: "grimorium",
+    themeId: "orrery",
     timeoutMs: 5000,
     parallel: 6
   };
@@ -56,7 +56,7 @@ export function normalize(c) {
   c.classifiers ||= [];
   c.positions ||= {};
   c.groupByTag ??= false;
-  c.themeId ??= "grimorium";
+  c.themeId ??= "orrery";
   c.timeoutMs ??= 5000;
   c.parallel ??= 6;
   for (const ch of c.chains) {

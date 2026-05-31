@@ -22,14 +22,14 @@ export const THEMES = Object.freeze({
   orrery
 });
 
-export let activeTheme = grimorium;
+export let activeTheme = orrery;
 
 export function setActiveTheme(theme) {
   activeTheme = theme;
 }
 
 export function themeById(id) {
-  return THEMES[id] ?? grimorium;
+  return THEMES[id] ?? orrery;
 }
 
 /**

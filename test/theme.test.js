@@ -9,6 +9,7 @@ import {
 } from "../src/js/theme.js";
 import { grimorium } from "../src/js/themes/grimorium.js";
 import { cassette } from "../src/js/themes/cassette.js";
+import { orrery } from "../src/js/themes/orrery.js";
 import { buildCard } from "../src/js/render.js";
 import { makeChain, makeLink } from "./helpers/fixtures.js";
 
@@ -37,10 +38,10 @@ describe("Theme shape (grimorium as reference)", () => {
 });
 
 describe("stateLabel", () => {
-  it("maps states through the active theme by default", () => {
-    expect(stateLabel("ok")).toBe("HOLDS");
-    expect(stateLabel("bad")).toBe("SEVERED");
-    expect(stateLabel("unk")).toBe("UNSCRYED");
+  it("maps states through the active theme by default (orrery)", () => {
+    expect(stateLabel("ok")).toBe("TRACKING");
+    expect(stateLabel("bad")).toBe("LOST");
+    expect(stateLabel("unk")).toBe("DARK");
   });
 
   it("accepts an explicit theme override", () => {
@@ -93,25 +94,27 @@ describe("setActiveTheme", () => {
     setActiveTheme(stub);
     expect(stateLabel("ok")).toBe("S_OK");
     setActiveTheme(original);
-    expect(stateLabel("ok")).toBe("HOLDS");
+    expect(stateLabel("ok")).toBe("TRACKING");
   });
 });
 
 describe("THEMES registry", () => {
-  it("exposes grimorium and cassette", () => {
+  it("exposes grimorium, cassette, and orrery", () => {
     expect(THEMES.grimorium).toBe(grimorium);
     expect(THEMES.cassette).toBe(cassette);
+    expect(THEMES.orrery).toBe(orrery);
   });
 
   it("themeById returns the requested theme", () => {
     expect(themeById("cassette")).toBe(cassette);
     expect(themeById("grimorium")).toBe(grimorium);
+    expect(themeById("orrery")).toBe(orrery);
   });
 
-  it("themeById falls back to grimorium for unknown ids", () => {
-    expect(themeById("nonsense")).toBe(grimorium);
-    expect(themeById("")).toBe(grimorium);
-    expect(themeById(null)).toBe(grimorium);
+  it("themeById falls back to orrery (the default) for unknown ids", () => {
+    expect(themeById("nonsense")).toBe(orrery);
+    expect(themeById("")).toBe(orrery);
+    expect(themeById(null)).toBe(orrery);
   });
 });
 
