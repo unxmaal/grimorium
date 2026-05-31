@@ -6,36 +6,14 @@ import { cryptoRandomId } from "./state.js";
 export const STORE_KEY    = "grimorium.config.v3";
 export const STORE_KEY_V2 = "grimorium.config.v2";
 
+// Generic example chains. The published build ships with these so a fresh
+// visitor sees something working; personal hosts go in via Inscribe and
+// persist to localStorage. Never put real LAN info here — this file is
+// bundled into the public index.html.
 export const DEFAULT_NODES = [
-  ["router",             "192.168.1.10"],
-  ["REDACTED",                "192.168.1.10"],
-  ["REDACTED",                "192.168.1.10"],
-  ["REDACTED",               "192.168.1.10"],
-  ["REDACTED",                "192.168.1.10"],
-  ["REDACTED",             "192.168.1.10"],
-  ["REDACTED",                   "192.168.1.10"],
-  ["REDACTED",               "192.168.1.10"],
-  ["REDACTED",                 "192.168.1.10"],
-  ["REDACTED",                "192.168.1.10"],
-  ["silver",                 "192.168.1.10"],
-  ["REDACTED",                  "192.168.1.10"],
-  ["REDACTED",            "192.168.1.10"],
-  ["styx",                   "192.168.1.10"],
-  ["REDACTED", "192.168.1.10"],
-  ["REDACTED",   "192.168.1.10"],
-  ["REDACTED",                "192.168.1.10"],
-  ["REDACTED",          "192.168.1.10"],
-  ["REDACTED",         "192.168.1.10"],
-  ["REDACTED",          "192.168.1.10"],
-  ["REDACTED",           "192.168.1.10"],
-  ["retro",                  "192.168.1.10"],
-  ["REDACTED",                 "192.168.1.10"],
-  ["REDACTED",            "192.168.1.10"],
-  ["Mac",                    "192.168.1.10"],
-  ["REDACTED",        "192.168.1.10"],
-  ["REDACTED",      "192.168.1.10"],
-  ["phaser",                 "192.168.1.10"],
-  ["orange",                 "192.168.1.10"]
+  ["router",      "192.168.1.10"],
+  ["public DNS",  "1.1.1.1"],
+  ["example.com", "example.com"]
 ];
 
 export const DEFAULT_TINTS = [

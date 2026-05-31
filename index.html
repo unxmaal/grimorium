@@ -1109,34 +1109,8 @@
   var STORE_KEY_V2 = "grimorium.config.v2";
   var DEFAULT_NODES = [
     ["router", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["silver", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["styx", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["retro", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["Mac", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["REDACTED", "192.168.1.10"],
-    ["phaser", "192.168.1.10"],
-    ["orange", "192.168.1.10"]
+    ["public DNS", "1.1.1.1"],
+    ["example.com", "example.com"]
   ];
   var DEFAULT_TINTS = [
     "#8ee066",
@@ -3860,7 +3834,7 @@
         el("input", {
           type: "text",
           value: chain.address || "",
-          placeholder: "192.168.1.10 or REDACTED.example.com",
+          placeholder: "192.168.1.10 or example.com",
           onInput: (e) => chain.address = e.target.value
         })
       ),
@@ -3959,7 +3933,7 @@
     const targetI = el("input", {
       type: "text",
       value: link.target,
-      placeholder: link.probe === "doh" ? "REDACTED.example.com" : link.probe === "ws-tcp" ? "host:port" : "url",
+      placeholder: link.probe === "doh" ? "example.com" : link.probe === "ws-tcp" ? "host:port" : "url",
       onInput: (e) => link.target = e.target.value
     });
     const expectCell = el("div", {});

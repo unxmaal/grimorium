@@ -843,7 +843,7 @@ function chainEditorBlock(chain, classifiers, onDelete, onRefresh) {
     el("div", {},
       el("label", {}, t("nouns.addressLabel")),
       el("input", { type: "text", value: chain.address || "",
-        placeholder: "192.168.1.10 or REDACTED.example.com",
+        placeholder: "192.168.1.10 or example.com",
         onInput: (e) => chain.address = e.target.value })
     ),
     el("div", {},
@@ -935,7 +935,7 @@ function linkEditorRow(chain, link) {
     probeS.append(o);
   }
   const targetI = el("input", { type: "text", value: link.target,
-    placeholder: link.probe === "doh" ? "REDACTED.example.com" : link.probe === "ws-tcp" ? "host:port" : "url",
+    placeholder: link.probe === "doh" ? "example.com" : link.probe === "ws-tcp" ? "host:port" : "url",
     onInput: (e) => link.target = e.target.value });
 
   const expectCell = el("div", {});
