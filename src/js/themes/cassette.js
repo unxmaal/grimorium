@@ -46,7 +46,8 @@ export const cassette = {
       purge:           "CLEAR",
       exportLabel:     "EXPORT",
       importLabel:     "IMPORT",
-      apply:           "EXECUTE"
+      apply:           "EXECUTE",
+      trust:           "PROVENANCE"
     },
     nouns: {
       chain:    "chain",
@@ -69,7 +70,8 @@ export const cassette = {
       transcribe:    "Transfer",
       sigilNew:      "New Tag",
       sigilEdit:     "Edit Tag",
-      sigilDefault:  "Tag"
+      sigilDefault:  "Tag",
+      trust:         "PROVENANCE"
     },
     empty: {
       noChainsHead:    "no chains configured.",

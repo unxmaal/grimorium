@@ -34,6 +34,37 @@ Tags. They appear as small circular sigils on the left edge of the screen, each 
 
 Toggle Group mode in the toolbar and chains cluster on screen by their first sigil. Each group draws a bordered region tinted with the sigil's color. Within a group, cards still drag normally but snap back, since their position is computed from the group layout.
 
+## Trust and verification
+
+This page runs entirely in your browser. It has no server, no agent, no account, no analytics, and no third-party scripts. The browser sandbox is the security boundary; everything below describes the exact surface where the page touches the outside world.
+
+### What this page can do
+
+- Send HTTP, HTTPS, and WebSocket requests to the URLs you add as chain links, and nowhere else.
+- Send DNS-over-HTTPS queries to Cloudflare (`cloudflare-dns.com`), and only when a chain link uses the DoH probe type.
+- Read and write its own configuration to your browser's `localStorage` for this page's origin.
+
+### What this page cannot do
+
+- Open raw sockets, send ICMP pings, or make arbitrary TCP connections. The browser sandbox does not expose these capabilities to JavaScript.
+- Discover devices on your network. It can only contact addresses you entered yourself.
+- Read responses from `https` probes. Those run as opaque cross-origin fetches and return only "answered" or "timeout". Response bodies and status codes are invisible to the page.
+- Read your filesystem, see other tabs, or persist anything outside its own `localStorage`.
+- Send telemetry, analytics, error reports, or any other data anywhere. There is no remote logging.
+
+### How to verify
+
+- View Page Source on the live page, or save it and open in an editor. The entire app is one HTML file with all CSS and JS inlined, unminified.
+- Clone this repository, run `npm ci && npm run build`, and compare the resulting `index.html` to the one you are using.
+- The deployed Pages site exposes two metadata files at its root:
+  - `sha256.txt`: SHA-256 hash of the deployed `index.html`
+  - `version.txt`: commit SHA the page was built from, and the UTC build time
+- Open your browser's DevTools, switch to the Network tab, and run a scan. You will see one request per chain link plus DoH queries when applicable. Nothing else.
+
+### Imported configurations
+
+Imported configurations are also content. If you import a chain set from someone you do not trust, you are letting them decide which URLs this page contacts on your behalf. The page still cannot read opaque responses, but the requests themselves still happen.
+
 ## Probe limits
 
 The dashboard runs entirely in the browser. The browser does not have raw sockets, ICMP, or arbitrary TCP. Several things that work from `nmap` or `netcat` are not possible from a browser.

@@ -1241,6 +1241,13 @@ $("#btn-chain-cancel").addEventListener("click", closeChainModal);
 $("#btn-chain-save").addEventListener("click", saveChainModal);
 $("#btn-chain-delete").addEventListener("click", deleteChainModal);
 
+function openTrustModal()  { $("#modal-bg-trust").classList.add("open"); }
+function closeTrustModal() { $("#modal-bg-trust").classList.remove("open"); }
+$("#btn-trust").addEventListener("click", openTrustModal);
+$("#btn-close-trust").addEventListener("click", closeTrustModal);
+$("#btn-trust-ok").addEventListener("click", closeTrustModal);
+$("#modal-bg-trust").addEventListener("click", (e) => { if (e.target.id === "modal-bg-trust") closeTrustModal(); });
+
 $("#modal-bg").addEventListener("click", (e) => { if (e.target.id === "modal-bg") closeConfigModal(); });
 $("#modal-bg-json").addEventListener("click", (e) => { if (e.target.id === "modal-bg-json") closeJsonModal(); });
 $("#modal-bg-classifier").addEventListener("click", (e) => { if (e.target.id === "modal-bg-classifier") closeClassifierModal(); });
@@ -1251,6 +1258,7 @@ window.addEventListener("keydown", (e) => {
     if ($("#modal-bg-classifier").classList.contains("open")) closeClassifierModal();
     else if ($("#modal-bg-chain").classList.contains("open")) closeChainModal();
     else if ($("#modal-bg-json").classList.contains("open")) closeJsonModal();
+    else if ($("#modal-bg-trust").classList.contains("open")) closeTrustModal();
     else if ($("#modal-bg").classList.contains("open")) closeConfigModal();
     else if ($("#sidepanel").classList.contains("open")) closeSidepanel();
     else if (activeFilter) toggleFilter(activeFilter);

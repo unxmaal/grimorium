@@ -692,6 +692,38 @@
   }
   .tip .row .k { color: var(--ink-dim); letter-spacing: 0.1em; text-transform: uppercase; }
 
+  /* ---------- trust modal ---------- */
+  .trust-body { font-family: var(--serif); font-size: 12px; line-height: 1.55; color: var(--ink); }
+  .trust-body h3 {
+    margin: 16px 0 6px 0;
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .trust-body ul { margin: 0 0 8px 0; padding-left: 18px; }
+  .trust-body li { margin-bottom: 5px; }
+  .trust-body code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: rgba(0,0,0,0.18);
+    padding: 1px 5px;
+    border-radius: 1px;
+  }
+  body[data-theme="orrery"] .trust-body code { background: rgba(26, 107, 199, 0.08); }
+  .trust-body a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+  .trust-body a:hover { color: var(--gold-bright); }
+  .trust-lede { color: var(--ink); margin: 0 0 6px 0; }
+  .trust-foot {
+    margin: 14px 0 0 0;
+    padding-top: 12px;
+    border-top: 1px dashed var(--ink-faint);
+    color: var(--ink-dim);
+    font-size: 11px;
+    font-style: italic;
+  }
+
   /* ---------- background-decor SVG classes ---------- */
   .bg-tri { fill: none; stroke: var(--ink-faint); stroke-width: 0.6; opacity: 0.5; }
   .bg-tri-alt { fill: rgba(107, 58, 20, 0.04); stroke: none; }
@@ -903,7 +935,8 @@
 <div class="shelf" id="shelf"></div>
 
 <div class="topbar">
-  <div class="brand"><span data-label="brand.name">Grimorium</span><span class="sub" data-label="brand.sub">// internal divination</span></div>
+  <div class="brand"><span data-label="brand.name">Orrery</span><span class="sub" data-label="brand.sub">// station tracking</span></div>
+  <button class="btn ghost" id="btn-trust" title="what this page can and cannot do" data-label="actions.trust">Provenance</button>
   <div class="spacer"></div>
   <div class="meta">
     <div><span class="k">Chains</span><span class="v" id="meta-chains">0</span></div>
@@ -919,10 +952,10 @@
 </div>
 
 <div class="empty-hint" id="empty-hint">
-  <h1 data-label="brand.name">GRIMORIUM</h1>
-  <div class="glyph-row">☉ ☽ ☿ ♀ ♂ ♃ ♄</div>
-  <div data-label="empty.noChainsHead">no chains inscribed.</div>
-  <div style="margin-top:8px;color:var(--gold)" data-label="empty.pressHint">press INSCRIBE to begin.</div>
+  <h1 data-label="brand.name">ORRERY</h1>
+  <div class="glyph-row">☉ ☽ ☿ ♀ ♁ ♂ ♃ ♄</div>
+  <div data-label="empty.noChainsHead">no orbits established.</div>
+  <div style="margin-top:8px;color:var(--gold)" data-label="empty.pressHint">press CONFIGURE to begin.</div>
 </div>
 
 <aside class="sidepanel" id="sidepanel">
@@ -1033,6 +1066,55 @@
       <div class="right">
         <button class="btn ghost" id="btn-cls-cancel" data-label="actions.cancel">Cancel</button>
         <button class="btn primary" id="btn-cls-save" data-label="actions.bind">Bind</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg-trust">
+  <div class="modal" style="width:min(680px,92vw)">
+    <div class="head">
+      <h2 data-label="modalTitles.trust">Provenance</h2>
+      <button class="btn ghost" id="btn-close-trust" data-label="actions.close">Close</button>
+    </div>
+    <div class="body trust-body">
+      <p class="trust-lede">
+        This page runs entirely in your browser. It has no server, no agent, no account, no analytics, and no third-party scripts. Everything below describes the exact surface where it touches the outside world.
+      </p>
+
+      <h3>What this page can do</h3>
+      <ul>
+        <li>Send HTTP, HTTPS, and WebSocket requests <strong>to the URLs you add as chain links</strong>, and nowhere else.</li>
+        <li>Send DNS-over-HTTPS queries to Cloudflare (<code>cloudflare-dns.com</code>), and <strong>only</strong> when a chain link uses the DoH probe type.</li>
+        <li>Read and write its own configuration to your browser's <code>localStorage</code> for this page's origin.</li>
+      </ul>
+
+      <h3>What this page cannot do</h3>
+      <ul>
+        <li>Open raw sockets, send ICMP pings, or make arbitrary TCP connections. The browser sandbox does not expose these capabilities to JavaScript.</li>
+        <li>Discover devices on your network. It can only contact addresses you have already entered yourself.</li>
+        <li>Read responses from <code>https</code> probes. Those run as opaque cross-origin fetches and return only "answered" or "timeout" — the response body and status code are invisible to this page.</li>
+        <li>Read your filesystem, see other tabs, or persist anything outside its own <code>localStorage</code>.</li>
+        <li>Send telemetry, analytics, error reports, or any other data back to me or anywhere else. There is no remote logging.</li>
+      </ul>
+
+      <h3>How to verify</h3>
+      <ul>
+        <li>The entire app is one HTML file. Right-click → <em>View Page Source</em>, or save the page and open it in an editor.</li>
+        <li>Source repository: <a href="https://github.com/unxmaal/grimorium" target="_blank" rel="noopener noreferrer">github.com/unxmaal/grimorium</a>. Clone, run <code>npm ci &amp;&amp; npm run build</code>, and compare the resulting <code>index.html</code> to this one.</li>
+        <li><a href="sha256.txt" target="_blank" rel="noopener noreferrer">sha256.txt</a> at the deployed root contains the SHA-256 of this <code>index.html</code>.</li>
+        <li><a href="version.txt" target="_blank" rel="noopener noreferrer">version.txt</a> at the deployed root contains the commit SHA this page was built from and the UTC build time.</li>
+        <li>Open your browser's DevTools → Network tab while running a scan, and you will see every request the page makes. There should be one per chain link, plus DoH queries when applicable. Nothing else.</li>
+      </ul>
+
+      <p class="trust-foot">
+        Imported configurations are also content. If you import a chain set from someone you do not trust, you are letting them decide which URLs this page contacts on your behalf. The page still cannot read opaque responses, but the requests themselves still happen.
+      </p>
+    </div>
+    <div class="foot">
+      <div></div>
+      <div class="right">
+        <button class="btn primary" id="btn-trust-ok" data-label="actions.close">Close</button>
       </div>
     </div>
   </div>
@@ -1962,7 +2044,8 @@
         purge: "Purge",
         exportLabel: "Export",
         importLabel: "Import",
-        apply: "Apply"
+        apply: "Apply",
+        trust: "Provenance"
       },
       nouns: {
         chain: "chain",
@@ -1985,7 +2068,8 @@
         transcribe: "Transcribe",
         sigilNew: "New Sigil",
         sigilEdit: "Edit Sigil",
-        sigilDefault: "Sigil"
+        sigilDefault: "Sigil",
+        trust: "On Provenance"
       },
       empty: {
         noChainsHead: "no chains inscribed.",
@@ -2318,7 +2402,8 @@
         purge: "CLEAR",
         exportLabel: "EXPORT",
         importLabel: "IMPORT",
-        apply: "EXECUTE"
+        apply: "EXECUTE",
+        trust: "PROVENANCE"
       },
       nouns: {
         chain: "chain",
@@ -2341,7 +2426,8 @@
         transcribe: "Transfer",
         sigilNew: "New Tag",
         sigilEdit: "Edit Tag",
-        sigilDefault: "Tag"
+        sigilDefault: "Tag",
+        trust: "PROVENANCE"
       },
       empty: {
         noChainsHead: "no chains configured.",
@@ -2744,7 +2830,8 @@
         purge: "CLEAR",
         exportLabel: "EXPORT",
         importLabel: "IMPORT",
-        apply: "APPLY"
+        apply: "APPLY",
+        trust: "PROVENANCE"
       },
       nouns: {
         chain: "orbit",
@@ -2767,7 +2854,8 @@
         transcribe: "Transfer",
         sigilNew: "New Cluster",
         sigilEdit: "Edit Cluster",
-        sigilDefault: "Cluster"
+        sigilDefault: "Cluster",
+        trust: "Provenance"
       },
       empty: {
         noChainsHead: "no orbits established.",
@@ -4226,6 +4314,18 @@
   $("#btn-chain-cancel").addEventListener("click", closeChainModal);
   $("#btn-chain-save").addEventListener("click", saveChainModal);
   $("#btn-chain-delete").addEventListener("click", deleteChainModal);
+  function openTrustModal() {
+    $("#modal-bg-trust").classList.add("open");
+  }
+  function closeTrustModal() {
+    $("#modal-bg-trust").classList.remove("open");
+  }
+  $("#btn-trust").addEventListener("click", openTrustModal);
+  $("#btn-close-trust").addEventListener("click", closeTrustModal);
+  $("#btn-trust-ok").addEventListener("click", closeTrustModal);
+  $("#modal-bg-trust").addEventListener("click", (e) => {
+    if (e.target.id === "modal-bg-trust") closeTrustModal();
+  });
   $("#modal-bg").addEventListener("click", (e) => {
     if (e.target.id === "modal-bg") closeConfigModal();
   });
@@ -4243,6 +4343,7 @@
       if ($("#modal-bg-classifier").classList.contains("open")) closeClassifierModal();
       else if ($("#modal-bg-chain").classList.contains("open")) closeChainModal();
       else if ($("#modal-bg-json").classList.contains("open")) closeJsonModal();
+      else if ($("#modal-bg-trust").classList.contains("open")) closeTrustModal();
       else if ($("#modal-bg").classList.contains("open")) closeConfigModal();
       else if ($("#sidepanel").classList.contains("open")) closeSidepanel();
       else if (activeFilter) toggleFilter(activeFilter);

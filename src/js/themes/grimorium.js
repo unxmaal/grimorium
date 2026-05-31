@@ -48,7 +48,8 @@ export const grimorium = {
       purge:           "Purge",
       exportLabel:     "Export",
       importLabel:     "Import",
-      apply:           "Apply"
+      apply:           "Apply",
+      trust:           "Provenance"
     },
     nouns: {
       chain:    "chain",
@@ -71,7 +72,8 @@ export const grimorium = {
       transcribe:    "Transcribe",
       sigilNew:      "New Sigil",
       sigilEdit:     "Edit Sigil",
-      sigilDefault:  "Sigil"
+      sigilDefault:  "Sigil",
+      trust:         "On Provenance"
     },
     empty: {
       noChainsHead:    "no chains inscribed.",

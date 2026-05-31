@@ -39,6 +39,13 @@ jobs:
         run: |
           mkdir -p dist
           cp index.html dist/
+          sha256sum dist/index.html | awk '{print $1}' > dist/sha256.txt
+          {
+            echo "commit:    ${GITHUB_SHA}"
+            echo "ref:       ${GITHUB_REF}"
+            echo "built_at:  $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "repo:      ${GITHUB_REPOSITORY}"
+          } > dist/version.txt
 
       - uses: actions/configure-pages@v5
 

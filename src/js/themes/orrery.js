@@ -52,7 +52,8 @@ export const orrery = {
       purge:           "CLEAR",
       exportLabel:     "EXPORT",
       importLabel:     "IMPORT",
-      apply:           "APPLY"
+      apply:           "APPLY",
+      trust:           "PROVENANCE"
     },
     nouns: {
       chain:    "orbit",
@@ -75,7 +76,8 @@ export const orrery = {
       transcribe:    "Transfer",
       sigilNew:      "New Cluster",
       sigilEdit:     "Edit Cluster",
-      sigilDefault:  "Cluster"
+      sigilDefault:  "Cluster",
+      trust:         "Provenance"
     },
     empty: {
       noChainsHead:    "no orbits established.",

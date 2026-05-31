@@ -685,6 +685,38 @@
   }
   .tip .row .k { color: var(--ink-dim); letter-spacing: 0.1em; text-transform: uppercase; }
 
+  /* ---------- trust modal ---------- */
+  .trust-body { font-family: var(--serif); font-size: 12px; line-height: 1.55; color: var(--ink); }
+  .trust-body h3 {
+    margin: 16px 0 6px 0;
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .trust-body ul { margin: 0 0 8px 0; padding-left: 18px; }
+  .trust-body li { margin-bottom: 5px; }
+  .trust-body code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: rgba(0,0,0,0.18);
+    padding: 1px 5px;
+    border-radius: 1px;
+  }
+  body[data-theme="orrery"] .trust-body code { background: rgba(26, 107, 199, 0.08); }
+  .trust-body a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+  .trust-body a:hover { color: var(--gold-bright); }
+  .trust-lede { color: var(--ink); margin: 0 0 6px 0; }
+  .trust-foot {
+    margin: 14px 0 0 0;
+    padding-top: 12px;
+    border-top: 1px dashed var(--ink-faint);
+    color: var(--ink-dim);
+    font-size: 11px;
+    font-style: italic;
+  }
+
   /* ---------- background-decor SVG classes ---------- */
   .bg-tri { fill: none; stroke: var(--ink-faint); stroke-width: 0.6; opacity: 0.5; }
   .bg-tri-alt { fill: rgba(107, 58, 20, 0.04); stroke: none; }
