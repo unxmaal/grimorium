@@ -65,7 +65,22 @@ export function buildCard(chain, pos, ctx) {
   card.append(header, body);
 
   body.addEventListener("click", () => ctx.handlers.selectChain(chain.id));
-  header.addEventListener("mousedown", (e) => ctx.handlers.startCardDrag(e, card, chain.id));
+  header.addEventListener("pointerdown", (e) => ctx.handlers.startCardDrag(e, card, chain.id));
+
+  // Mobile-only tag-picker row. CSS hides .card-mobile-actions outside the
+  // mobile breakpoint, so this stays inert on desktop.
+  if (ctx.handlers.openMobileTagPicker) {
+    const actions = el("div", { class: "card-mobile-actions" },
+      el("button", {
+        class: "btn ghost",
+        onClick: (e) => {
+          e.stopPropagation();
+          ctx.handlers.openMobileTagPicker(chain.id);
+        }
+      }, "Tag")
+    );
+    card.append(actions);
+  }
 
   refreshCard(card, chain, ctx);
   return card;

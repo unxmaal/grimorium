@@ -85,11 +85,14 @@ describe("buildCard", () => {
     expect(ctx.handlers.selectChain).toHaveBeenCalledWith(chain.id);
   });
 
-  it("invokes startCardDrag on header mousedown", () => {
+  it("invokes startCardDrag on header pointerdown", () => {
     const ctx = makeCtx();
     const chain = makeChain();
     const card = buildCard(chain, { x: 0, y: 0 }, ctx);
-    card.querySelector(".card-header").dispatchEvent(new window.MouseEvent("mousedown"));
+    // jsdom may not implement PointerEvent; a plain Event with the right
+    // type bubbles to the listener the same way.
+    const PointerEvt = window.PointerEvent || window.MouseEvent;
+    card.querySelector(".card-header").dispatchEvent(new PointerEvt("pointerdown"));
     expect(ctx.handlers.startCardDrag).toHaveBeenCalled();
   });
 });
