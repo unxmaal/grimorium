@@ -41,6 +41,7 @@ import {
 import { el, svg, buildCard, refreshCard } from "./render.js";
 import { DRAG_THRESHOLD, dropTargetAt } from "./drag.js";
 import { activeTheme, stateLabel, themeById, applyTheme, applyLabels, t, THEMES } from "./theme.js";
+import { isMobile, syncMobileBodyState, clearCardAbsolutePositions } from "./mobile.js";
 
 /* ---------------------------------------------------------------------------
  * GRIMORIUM — chain-aware diagnostic dashboard.
@@ -200,6 +201,10 @@ function render() {
 }
 
 function applyLayout() {
+  if (isMobile()) {
+    layoutMobile();
+    return;
+  }
   if (isRadial()) {
     if (config.groupByTag) layoutGroupedRadial();
     else layoutFlatRadial();
@@ -207,6 +212,14 @@ function applyLayout() {
   }
   if (config.groupByTag) layoutGrouped();
   else layoutFlat();
+}
+
+function layoutMobile() {
+  // CSS pins position:static !important on .card under the mobile media
+  // query, so we just clear inline coords and drop group/system chrome.
+  $("#groups").innerHTML = "";
+  clearCardAbsolutePositions(cardEls.values());
+  syncMobileBodyState(document);
 }
 
 function layoutFlat() {
@@ -374,9 +387,81 @@ const renderCtx = {
     },
     showLinkTip: (ev, chain, link, st) => showLinkTip(ev, chain, link, st),
     hideTip: () => hideTip(),
-    moveTip: (ev) => moveTip(ev)
+    moveTip: (ev) => moveTip(ev),
+    openMobileTagPicker: (chainId) => openMobileTagPicker(chainId)
   }
 };
+
+/* ---------- mobile tag picker ---------- */
+
+let mobileTagPickerEl = null;
+
+function openMobileTagPicker(chainId) {
+  closeMobileTagPicker();
+  const chain = config.chains.find(c => c.id === chainId);
+  if (!chain) return;
+
+  const list = el("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px" } });
+  const renderChips = () => {
+    list.innerHTML = "";
+    if (!config.classifiers.length) {
+      list.append(el("div", { style: { color: "var(--ink-dim)", fontStyle: "italic" } },
+        "No sigils yet. Create one from the shelf, then come back."));
+      return;
+    }
+    for (const cls of config.classifiers) {
+      const on = chain.classifierIds.includes(cls.id);
+      const chip = el("button", {
+        class: "classifier-chip" + (on ? " on" : ""),
+        style: { color: cls.tint, minHeight: "36px" }
+      },
+        el("span", { class: "g" }, cls.glyph),
+        cls.name
+      );
+      chip.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (on) {
+          chain.classifierIds = chain.classifierIds.filter(x => x !== cls.id);
+          log(t("log.chainUnbound", chain.name, cls.name) || (chain.name + " ⊘ " + cls.name), "dim");
+        } else {
+          chain.classifierIds.push(cls.id);
+          log(t("log.chainBound", chain.name, cls.name), "info");
+        }
+        saveConfig(config);
+        updateChainVisual(chain.id);
+        if (activeFilter) applyFilter();
+        renderChips();
+      });
+      list.append(chip);
+    }
+  };
+  renderChips();
+
+  const sheet = el("div", { class: "modal", style: { width: "100vw", maxWidth: "100vw" } },
+    el("div", { class: "head" },
+      el("h2", {}, "Bind sigils — " + chain.name),
+      el("button", { class: "btn ghost", onClick: closeMobileTagPicker }, t("actions.close"))
+    ),
+    el("div", { class: "body" }, list),
+    el("div", { class: "foot" },
+      el("div", {}),
+      el("div", { class: "right" },
+        el("button", { class: "btn primary", onClick: closeMobileTagPicker }, t("actions.close"))
+      )
+    )
+  );
+  const bg = el("div", { class: "modal-bg open" }, sheet);
+  bg.addEventListener("click", (e) => { if (e.target === bg) closeMobileTagPicker(); });
+  document.body.append(bg);
+  mobileTagPickerEl = bg;
+}
+
+function closeMobileTagPicker() {
+  if (mobileTagPickerEl) {
+    mobileTagPickerEl.remove();
+    mobileTagPickerEl = null;
+  }
+}
 
 function updateChainVisual(chainId) {
   const card = cardEls.get(chainId);
@@ -397,11 +482,20 @@ let dragState = null;     // card-positioning drag
 let sigilDrag = null;     // dragging a sigil out of the shelf
 
 function startCardDrag(e, card, chainId) {
-  if (e.button !== 0) return;
+  // Mobile uses a vertical scroll list — drag is disabled. Letting the
+  // event bubble keeps the tap-to-select path on body.click working.
+  if (isMobile()) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
   e.preventDefault();
+  // Keep pointermove/up firing even if the finger or cursor leaves the
+  // header element mid-drag.
+  if (e.pointerId != null && card.setPointerCapture) {
+    try { card.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
   const rect = card.getBoundingClientRect();
   dragState = {
     card, chainId,
+    pointerId: e.pointerId ?? null,
     startX: e.clientX, startY: e.clientY,
     origX: rect.left, origY: rect.top,
     moved: false,
@@ -410,10 +504,15 @@ function startCardDrag(e, card, chainId) {
 }
 
 function startSigilDrag(e, classifier, srcEl) {
-  if (e.button !== 0) return;
+  if (isMobile()) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
   e.preventDefault();
+  if (e.pointerId != null && srcEl.setPointerCapture) {
+    try { srcEl.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
   sigilDrag = {
     classifier, srcEl,
+    pointerId: e.pointerId ?? null,
     startX: e.clientX, startY: e.clientY,
     moved: false,
     ghost: null,
@@ -421,7 +520,7 @@ function startSigilDrag(e, classifier, srcEl) {
   };
 }
 
-window.addEventListener("mousemove", (e) => {
+window.addEventListener("pointermove", (e) => {
   if (dragState) {
     const dx = e.clientX - dragState.startX;
     const dy = e.clientY - dragState.startY;
@@ -469,7 +568,7 @@ window.addEventListener("mousemove", (e) => {
   }
 });
 
-window.addEventListener("mouseup", (e) => {
+window.addEventListener("pointerup", (e) => {
   if (dragState) {
     const ds = dragState;
     dragState = null;
@@ -555,10 +654,10 @@ function renderShelf() {
     const s = el("div", {
       class: "sigil" + (activeFilter === cls.id ? " active" : ""),
       "data-classifier-id": cls.id,
-      title: cls.name + " — click to filter, drag onto a chain to tag, double-click to edit",
+      title: cls.name + " — tap to filter, long-press (or double-click) to edit",
       style: { color: cls.tint }
     }, cls.glyph);
-    s.addEventListener("mousedown", (e) => startSigilDrag(e, cls, s));
+    s.addEventListener("pointerdown", (e) => onSigilPointerDown(e, cls, s));
     s.addEventListener("dblclick", (e) => { e.preventDefault(); openClassifierModal(cls.id); });
     shelf.appendChild(s);
     sigilEls.set(cls.id, s);
@@ -566,6 +665,45 @@ function renderShelf() {
   const add = el("div", { class: "sigil add", title: "Add a new sigil" }, "+");
   add.addEventListener("click", () => openClassifierModal(null));
   shelf.appendChild(add);
+}
+
+// Branch on viewport mode. Desktop keeps the drag-to-tag affordance; mobile
+// substitutes tap-to-filter and a 400ms long-press to open the edit modal.
+const LONG_PRESS_MS = 400;
+const TAP_MOVE_TOLERANCE = 8;
+
+function onSigilPointerDown(e, cls, srcEl) {
+  if (!isMobile()) {
+    startSigilDrag(e, cls, srcEl);
+    return;
+  }
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  const startX = e.clientX, startY = e.clientY;
+  let moved = false;
+  let firedLongPress = false;
+  const longPressTimer = setTimeout(() => {
+    if (!moved) {
+      firedLongPress = true;
+      openClassifierModal(cls.id);
+    }
+  }, LONG_PRESS_MS);
+
+  const onMove = (ev) => {
+    if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > TAP_MOVE_TOLERANCE) {
+      moved = true;
+      clearTimeout(longPressTimer);
+    }
+  };
+  const onUp = () => {
+    clearTimeout(longPressTimer);
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onUp);
+    if (!moved && !firedLongPress) toggleFilter(cls.id);
+  };
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
 }
 
 function toggleFilter(classifierId) {
@@ -673,8 +811,12 @@ function renderSidepanel(highlightLink = null) {
   const agg = aggregateChainState(chain, statusMap);
 
   const head = el("div", { class: "section" },
-    el("div", { style: { display: "flex", alignItems: "center", marginBottom: "8px", gap: "6px" } },
+    el("div", { style: { display: "flex", alignItems: "center", marginBottom: "8px", gap: "6px", flexWrap: "wrap" } },
       el("h3", { style: { margin: 0, flex: "1" } }, chain.name),
+      isMobile()
+        ? el("button", { class: "btn ghost", style: { padding: "4px 10px", fontSize: "10px" },
+            onClick: () => openMobileTagPicker(chain.id) }, "Tag")
+        : null,
       el("button", { class: "btn ghost", style: { padding: "2px 8px", fontSize: "9px" },
         onClick: () => openChainModal(chain.id) }, t("actions.edit")),
       el("button", { class: "btn ghost", style: { padding: "2px 8px", fontSize: "9px" },
@@ -1156,27 +1298,45 @@ let lastFrame = 0;
 function loop(t) {
   const dt = lastFrame ? (t - lastFrame) : 16;
   if (t - lastFrame > 33) {
-    decoration.drawCanvas(t, dt);
-    if (isRadial() && orbitalState) {
-      const frozen = dragState && dragState.chainId ? new Set([dragState.chainId]) : null;
-      tickOrbitalState(orbitalState, dt, currentOrbitalBounds(), frozen);
-      applyOrbitalDom();
+    if (!isMobile()) {
+      decoration.drawCanvas(t, dt);
+      if (isRadial() && orbitalState) {
+        const frozen = dragState && dragState.chainId ? new Set([dragState.chainId]) : null;
+        tickOrbitalState(orbitalState, dt, currentOrbitalBounds(), frozen);
+        applyOrbitalDom();
+      }
     }
     lastFrame = t;
   }
-  decoration.maybeSpawnEmber(t);
-  decoration.tickScene(t);
+  if (!isMobile()) {
+    decoration.maybeSpawnEmber(t);
+    decoration.tickScene(t);
+  }
   requestAnimationFrame(loop);
 }
 
+let lastMobileMode = isMobile();
 window.addEventListener("resize", () => {
+  const nowMobile = isMobile();
+  if (nowMobile !== lastMobileMode) {
+    lastMobileMode = nowMobile;
+    syncMobileBodyState(document);
+    applyLayout();
+    return;
+  }
+  if (nowMobile) {
+    syncMobileBodyState(document);
+    return;
+  }
   decoration.sizeCanvas();
   decoration.buildBackground();
   if (isRadial()) rebuildOrbital();
   else if (config.groupByTag) applyLayout();
 });
-decoration.sizeCanvas();
-decoration.buildBackground();
+if (!isMobile()) {
+  decoration.sizeCanvas();
+  decoration.buildBackground();
+}
 requestAnimationFrame(loop);
 
 /* ---------- wire up ---------- */
@@ -1212,7 +1372,25 @@ $("#btn-reset").addEventListener("click", () => {
   $("#cfg-timeout").value = draft.timeoutMs;
   $("#cfg-parallel").value = draft.parallel;
 });
-$("#btn-clear-log").addEventListener("click", () => { $("#log").innerHTML = ""; });
+$("#btn-clear-log").addEventListener("click", (e) => { e.stopPropagation(); $("#log").innerHTML = ""; });
+
+// Mobile: tap the console header to expand/collapse. Desktop ignores the
+// .open class (CSS keeps console at fixed 160px height there).
+document.querySelector(".console .header").addEventListener("click", (e) => {
+  if (!isMobile()) return;
+  if (e.target.closest("#btn-clear-log")) return;
+  document.querySelector(".console").classList.toggle("open");
+});
+
+// Mobile: tap outside the sidepanel sheet to dismiss it.
+document.addEventListener("click", (e) => {
+  if (!isMobile()) return;
+  const panel = $("#sidepanel");
+  if (!panel.classList.contains("open")) return;
+  if (panel.contains(e.target)) return;
+  if (e.target.closest(".card, .topbar, .shelf, .console, .modal-bg")) return;
+  closeSidepanel();
+});
 
 $("#btn-export").addEventListener("click", () => openJsonModal("export"));
 $("#btn-import").addEventListener("click", () => openJsonModal("import"));
@@ -1277,6 +1455,7 @@ log(t("log.dragHint"), "dim");
 log(t("log.sigilHint"), "dim");
 log(t("log.groupHint"), "dim");
 $("#btn-group").classList.toggle("active", config.groupByTag);
+syncMobileBodyState(document);
 render();
 renderShelf();
 updateMeta();
